@@ -7,4 +7,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(chip_builder main.cpp)
 
-target_include_directories(chip_builder PRIVATE include)
+target_include_directories(chip_builder PRIVATE core/drc/include)
