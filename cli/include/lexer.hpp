@@ -28,16 +28,6 @@ std::ostream& operator<<(std::ostream&, const Token& token);
 class Lexer 
 {
 public:
-    // enum class ExitCode 
-    // {   
-    //     EmptyCommand,
-    //     IllegalSymbol,
-    //     WrongWord,
-    //     WrongDashWord, 
-    //     WrongDoubleDashWord,
-
-    // };
-
     Lexer(const std::string&) noexcept;
     Token getCurrentToken();
 
