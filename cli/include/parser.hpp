@@ -7,15 +7,17 @@
 #include <exception>
 
 #include "lexer.hpp"
+#include "command_scheme.hpp"
 
 class Parser 
 {
 public:
     Parser(const std::string&);
+    CommandScheme parse();
 
 private:
     size_t m_currIdx;
-    std::vector<std::unique_ptr<Token>> m_tokens;
+    std::vector<Token> m_tokens;
 };
 
 #endif // PARSER_HPP
