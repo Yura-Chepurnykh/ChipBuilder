@@ -1,23 +1,25 @@
 #ifndef MEASUREMENT_UNITS_OVERLOADS_HPP
 #define MEASUREMENT_UNITS_OVERLOADS_HPP
 
-template<typename T>
-constexpr T operator"" _coulomb(T coulomb) { return coulomb; }
+#include "concepts.hpp"
 
-template<typename T>
-constexpr T operator"" _m(T meter) { return meter; }
+template<NumericType NT>
+constexpr NT operator"" _coulomb(NT coulomb) { return coulomb; }
 
-template<typename T>
-constexpr T operator"" _kg(T kilogram) { return kilogram; }
+template<NumericType NT>
+constexpr NT operator"" _m(NT meter) { return meter; }
 
-template<typename>
-constexpr T operator"" _s(T second) { return second; }
+template<NumericType NT>
+constexpr NT operator"" _kg(NT kilogram) { return kilogram; }
 
-template<typename>
-constexpr T operator"" _kelvin(T kelvin) { return kelvin; } 
+template<NumericType NT>
+constexpr NT operator"" _s(NT second) { return second; }
 
-template<typename>
-constexpr T operator"" _A(T ampere) { return ampere; }
+template<NumericType NT>
+constexpr NT operator"" _kelvin(NT kelvin) { return kelvin; } 
+
+template<NumericType NT>
+constexpr NT operator"" _A(NT ampere) { return ampere; }
 
 #endif // MEASUREMENT_UNITS_OVERLOADS_HPP
 
