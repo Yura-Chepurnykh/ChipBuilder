@@ -1,27 +1,32 @@
 #ifndef CIRCUITS_HPP
 #define CIRCUITS_HPP
 
+#include <type_traits>
 #include "layers.hpp"
 #include "dopant_material.hpp"
 
-struct NMOS;
-struct PMOS;
-struct CustomMOS;
-
-template<typename Type, typename DopantMaterial, size_t N>
-struct MOSLayers
+struct NMOS
 {
-    Substrate<Type, DopantMaterial, N> substrate;
-    Source<Type, DopantMaterial, N> source;
-    Drain<Type, DopantMaterial, N> drain;
-    Gate<N> gate;
+    using BodyType = PType;
+    using ChannelType = NType; 
 };
 
-template<typename DopantMaterial, size_t N>
-struct NMOS 
+struct PMOS
 {
-    template<>
-    MOSLayers<NType, >
+    using BodyType = NType;
+    using ChannelType = PType;
+};
+
+struct CMOS;
+struct CustomMos;
+
+template<typename MOSType, typename BodyDopant = Boron, typename SourceDrainDopant = Phosphorus>
+struct MOSLayersMap
+{
+    using SubstrateType = Substrate<typename MOSType::BodyType, BodyDopant>;
+    using SourceType = Source<typename MOSType::ChannelType, SourceDrainDopant>;
+    using DrainType = Drain<typename MOSType::ChannelType, SourceDrainDopant>;
+    using GateType = Gate;
 };
 
 #endif // CIRCUITS_HPP
