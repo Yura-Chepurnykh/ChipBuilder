@@ -1,9 +1,7 @@
-#ifndef LEXER_HPP
-#define LEXER_HPP
+#ifndef TOKEN_HPP
+#define TOKEN_HPP
 
 #include <iostream>
-#include <string>
-#include <cstddef>
 
 enum class Type 
 {
@@ -25,15 +23,4 @@ struct Token
 
 std::ostream& operator<<(std::ostream&, const Token& token);
 
-class Lexer 
-{
-public:
-    Lexer(const std::string&) noexcept;
-    Token getCurrentToken();
-
-private:
-    size_t m_pos;
-    std::string m_text;
-};
-
-#endif // LEXER_HPP
+#endif // TOKEN_HPP

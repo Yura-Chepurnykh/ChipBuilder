@@ -21,7 +21,7 @@ struct CMOS;
 struct CustomMos;
 
 template<typename MOSType, typename BodyDopant = Boron, typename SourceDrainDopant = Phosphorus>
-struct MOSLayersMap
+struct MOSLayersTraits
 {
     using SubstrateType = Substrate<typename MOSType::BodyType, BodyDopant>;
     using SourceType = Source<typename MOSType::ChannelType, SourceDrainDopant>;

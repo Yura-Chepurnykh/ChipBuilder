@@ -36,4 +36,6 @@ struct Drain : public Diffusion<Type, DopantMaterial> { };
 
 struct Gate : public Layer { };
 
+struct PolySilicon : public Layer { };
+
 #endif // LAYERS_HPP

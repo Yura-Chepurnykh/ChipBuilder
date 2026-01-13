@@ -7,11 +7,6 @@
 #include "circuits.hpp"
 
 // TEMP: may be needed later
-// struct IContext
-// {
-//     virtual ~IContext() = default;
-// };
-
 // template<typename ContextType>
 // struct Context : public IContext;
 
@@ -30,12 +25,17 @@
 //     std::vector<std::unique_ptr<IContext>> contexts;
 // };
 
+struct IContext
+{
+    virtual ~IContext() = default;
+};
+
 template <
     typename MOSType,
     typename BodyDopant = Boron,
     typename SourceDrainDopant = Phosphorus
 >
-struct MOSContext 
+struct MOSContext : public IContext
 {
     using Traits = MosLayersTraits<MOSType, BodyDopant, SourceDrainDopant>;
 

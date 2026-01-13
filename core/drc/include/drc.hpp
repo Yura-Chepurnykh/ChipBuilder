@@ -11,6 +11,8 @@
 // we use chain of responsibility pattern 
 // for drc 
 
+class Rule;
+
 class DRCDirector 
 {
 public:
@@ -24,7 +26,7 @@ private:
 class Rule 
 {
 public:
-    Rule() noexcept;
+    Rule();
     virtual ~Rule() = default;
     void setNext(std::shared_ptr<Rule>);
     virtual void handle(ParameterObject&);
