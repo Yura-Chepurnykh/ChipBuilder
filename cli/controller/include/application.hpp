@@ -18,6 +18,4 @@ private:
     std::vector<std::unique_ptr<IContext>> m_contexts;
 };
 
-#include "application.tpp"
-
 #endif // APPLICATION_HPP

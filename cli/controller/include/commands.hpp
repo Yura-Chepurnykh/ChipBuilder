@@ -3,6 +3,8 @@
 
 #include <string>
 #include "layers.hpp"
+#include "circuits.hpp"
+#include "context.hpp"
 
 class ICommand 
 {
@@ -11,7 +13,7 @@ public:
     virtual ~ICommand() = default;
 };
 
-template<typename MOSType>
+template<typename S>
 class CreateMOSCommand : public ICommand 
 {
 public:
@@ -22,37 +24,48 @@ private:
     std::string m_name;
 };
 
-template<typename MOSType, typename Type, typename Dopant>
+template<typename S, typename D>
 class CreateSubstrateCommand : public ICommand
 {
 public:
-    CreateSubstrateCommand(MOSContext<MOSType>&);
+    CreateSubstrateCommand(MOSContext<S, D>&);
     void execute() override;
 
 private:
-    MOSContext<MOSType>& m_context;
+    MOSContext<S>& m_context;
 };
 
-template<typename MOSType, typename DiffusionType, typename Type, typename Dopant>
+template<typename S, typename Diffusion, typename D>
 class CreateDiffusionCommand : public ICommand 
 {
 public:
-    CreateDiffusionCommand(MOSContext<MOSType>&);
+    CreateDiffusionCommand(MOSContext<S>&);
     void execute() override;
 
 private:
-    MOSContext<MOSType>& m_context;
+    MOSContext<S>& m_context;
 };
 
-template<typename MOSType>
-class CreatePolySiliconCommand : public ICommand 
+template<typename S>
+class CreatePolyCommand : public ICommand 
 {
 public:
-    CreatePolySiliconCommand(MOSContext<MOSType>&);
+    CreatePolyCommand(MOSContext<S>&);
     void execute() override;
 
 private:
-    MOSContext<MOSType>& m_context;
+    MOSContext<S>& m_context;
+};
+
+template<typename S>
+class CreateOxideCommand : public ICommand 
+{
+public:
+    CreateOxideCommand(MOSContext<S>&);
+    void execute() override;
+
+private:
+    MOSContext<S>& m_context;
 };
 
 #include "commands.tpp"

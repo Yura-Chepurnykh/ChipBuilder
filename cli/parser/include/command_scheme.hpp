@@ -40,7 +40,7 @@ struct CommandScheme
     };
     
     Token command;
-    Token subCommand;
+    // Token subCommand;
     std::vector<OptionToArgument> optionsToArguments;
     // std::vector<Token> flags;
     Token flag;

@@ -12,7 +12,7 @@ file(GLOB_RECURSE SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*/*/src/*.cpp"
 )
 
-message(STATUS "Sources: ${Sources}")
+message(STATUS "Sources: ${SOURCES}")
 
 add_executable(chip_builder main.cpp ${SOURCES})
 
@@ -24,4 +24,6 @@ target_include_directories(chip_builder PRIVATE
     cli/validation/include
     cli/parser/include
     cli/commands/include
+    cli/view/include
+    cli/controller/include
 )

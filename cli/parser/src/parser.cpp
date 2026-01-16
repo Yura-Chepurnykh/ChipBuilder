@@ -52,9 +52,8 @@ CommandScheme Parser::parse()
 {
     CommandScheme scheme;
     scheme.command = m_tokens[0];
-    scheme.subCommand = m_tokens[1];
 
-    for (size_t i = 2; i < m_tokens.size() - 1; i += 2)
+    for (size_t i = 1; i < m_tokens.size() - 1; i += 2)
         scheme.optionsToArguments.push_back({m_tokens[i], m_tokens[i+1]});
 
     scheme.flag = m_tokens.back();

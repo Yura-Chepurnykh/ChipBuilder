@@ -37,7 +37,7 @@ template <
 >
 struct MOSContext : public IContext
 {
-    using Traits = MosLayersTraits<MOSType, BodyDopant, SourceDrainDopant>;
+    using Traits = MOSLayersTraits<MOSType, BodyDopant, SourceDrainDopant>;
 
     typename Traits::SubstrateType substrate;
     typename Traits::SourceType source;

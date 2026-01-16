@@ -9,7 +9,7 @@ int main()
 
 
     std::cout << scheme.command << std::endl;
-    std::cout << scheme.subCommand << std::endl;
+    // std::cout << scheme.subCommand << std::endl;
 
     for (const auto& [option, argument] : scheme.optionsToArguments)
     {

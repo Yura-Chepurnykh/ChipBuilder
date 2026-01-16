@@ -1,6 +1,6 @@
-// application.tpp
+#include "application.hpp"
 
-static Application& Application::instance()
+Application& Application::instance()
 {
     static Application application;
     return application;

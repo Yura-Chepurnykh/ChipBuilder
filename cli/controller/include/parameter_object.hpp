@@ -4,21 +4,28 @@
 #include <type_traits>
 #include <string>
 #include "geometry.hpp"
+#include "concepts.hpp"
+#include "layers.hpp"
 
-// pattern parameter object 
-struct IParameterObject { virtual ~IParameterObject() = default; };
-
-template<typename NT>
+template<NumericType NT>
 struct Rect;
 
-template<typename S>
-struct CreateMosParams : public IParameterObject
+// pattern parameter object 
+template<NumericType NT>
+struct IParameterObject 
+{
+    Rect<NT> rect;
+    virtual ~IParameterObject() = default; 
+};
+
+template<typename S, NumericType NT>
+struct CreateMosParams : public IParameterObject<NT>
 {
     using SemiConductorType = S;
 };
 
-template<typename L, typename S, typename D>
-struct CreateParams : public IParameterObject, Rect<NT>
+template<typename L, typename S, typename D, NumericType NT>
+struct CreateParams : public IParameterObject<NT>
 {
     static_assert(std::is_base_of<L, Layer>::value, "L must inherit from Layer");
     using LayerType = L;
@@ -26,20 +33,20 @@ struct CreateParams : public IParameterObject, Rect<NT>
     using DopantType = D;
 };
 
-template<typename L>
-struct RemoveParams : public IParameterObject, Rect<NT>
+template<typename L, NumericType NT>
+struct RemoveParams : public IParameterObject<NT>
 {
     static_assert(std::is_base_of<L, Layer>::value, "L must inherit from Layer");
     using LayerType = L;
 };
 
-template<typename L>
-using GoToParams = RemoveParams;
+template<typename L, NumericType NT>
+using GoToParams = RemoveParams<L, NT>;
 
-template<typename L>
-using ReadParams = RemoveParams;
+template<typename L, NumericType NT>
+using ReadParams = RemoveParams<L, NT>;
 
-template<typename NT>
+template<NumericType NT>
 struct Rect 
 {
     Pos<NT, 2> position;

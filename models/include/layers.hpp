@@ -5,10 +5,10 @@
 struct NType;
 struct PType;
 
-struct Layer { }
+struct Layer { };
 
 template<typename Type, typename DopantMaterial>
-struct SemiConductor : Layer { }
+struct SemiConductor : Layer { };
 
 template<typename Type, typename DopantMaterial>
 struct Substrate : public SemiConductor<Type, DopantMaterial> { };
@@ -37,5 +37,7 @@ struct Drain : public Diffusion<Type, DopantMaterial> { };
 struct Gate : public Layer { };
 
 struct PolySilicon : public Layer { };
+
+struct Oxide : public Layer { };
 
 #endif // LAYERS_HPP
