@@ -7,6 +7,7 @@
 #include "context.hpp"
 #include "router.hpp"
 #include "parser.hpp"
+#include "parameter_object.hpp"
 
 class Controller 
 {

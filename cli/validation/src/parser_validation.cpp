@@ -8,11 +8,11 @@ UnknownCommandError::UnknownCommandError(const std::string& msg) : SyntaxError(m
 
 UnknownOptionError::UnknownOptionError(const std::string& msg) : SyntaxError(msg, ParserExitCode::UnknownOption) { }
 
-UnknownFlagError::UnknownFlagError(const std::string& msg) : SyntaxError(msg, ParserExitCode::UnknownFlag) { }
+// UnknownFlagError::UnknownFlagError(const std::string& msg) : SyntaxError(msg, ParserExitCode::UnknownFlag) { }
 
 MissingArgumentError::MissingArgumentError(const std::string& msg) : SyntaxError(msg, ParserExitCode::MissingArgument) { }
 
-IncorrectOrderError::IncorrectOrderError(const std::string& msg) : SyntaxError(msg, ParserExitCode::IncorrectOrder) { }
+MissingOptionError::MissingOptionError(const std::string& msg) : SyntaxError(msg, ParserExitCode::MissingArgument) { }
 
 std::ostream& operator<<(std::ostream& stream, ParserExitCode code)
 {
@@ -20,9 +20,9 @@ std::ostream& operator<<(std::ostream& stream, ParserExitCode code)
     {
         case ParserExitCode::UnknownCommand: return stream << "UnknownCommand";
         case ParserExitCode::UnknownOption: return stream << "UnknownOption";
-        case ParserExitCode::UnknownFlag: return stream << "UnknownFlag";
-        case ParserExitCode::IncorrectOrder: return stream << "IncorrectOrder";
+        // case ParserExitCode::UnknownFlag: return stream << "UnknownFlag";
         case ParserExitCode::MissingArgument: return stream << "MissingArgument";
+        case ParserExitCode::MissingOption: return stream << "MissingOption";
         default: return stream << "Unkown parser exit code";
     }
 }

@@ -7,36 +7,40 @@
 #include "concepts.hpp"
 #include "layers.hpp"
 
+struct IParameterObject 
+{
+    virtual ~IParameterObject() = default; 
+};
+
 template<NumericType NT>
 struct Rect;
 
 // pattern parameter object 
 template<NumericType NT>
-struct IParameterObject 
+struct ParameterObject : public IParameterObject
 {
     Rect<NT> rect;
-    virtual ~IParameterObject() = default; 
 };
 
 template<typename S, NumericType NT>
-struct CreateMosParams : public IParameterObject<NT>
+struct CreateMosParams : public ParameterObject<NT>
 {
     using SemiConductorType = S;
 };
 
 template<typename L, typename S, typename D, NumericType NT>
-struct CreateParams : public IParameterObject<NT>
+struct CreateParams : public ParameterObject<NT>
 {
-    static_assert(std::is_base_of<L, Layer>::value, "L must inherit from Layer");
+    static_assert(std::is_base_of<Layer, L>::value, "L must inherit from Layer");
     using LayerType = L;
     using SemiConductorType = S;
     using DopantType = D;
 };
 
 template<typename L, NumericType NT>
-struct RemoveParams : public IParameterObject<NT>
+struct RemoveParams : public ParameterObject<NT>
 {
-    static_assert(std::is_base_of<L, Layer>::value, "L must inherit from Layer");
+    static_assert(std::is_base_of<Layer, L>::value, "L must inherit from Layer");
     using LayerType = L;
 };
 

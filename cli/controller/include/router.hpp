@@ -19,67 +19,62 @@
 #include "layers.hpp"
 #include "circuits.hpp"
 
-template<typename SemiConductorType, NumericType NT>
+template<typename S, NumericType NT, template<typename ...> class L>
 struct DopantsFactory;
 
-template<NumericType NT>
-struct DopantsFactory<NType, NT>
+template<NumericType NT, template<typename ...> class L>
+struct DopantsFactory<NType, NT, L>
 {
-    inline static const std::map<std::string, std::function<std::unique_ptr<IParameterObject<NT>>()>> map
+    template<typename... Args>
+    using Layer = L<Args...>;
+
+    inline static const std::map<std::string, std::shared_ptr<ParameterObject<NT>>> map
     {
-        { "phosphorus", []() { return std::make_unique<CreateParams<Substrate<NType, Phosphorus>, NType, Phosphorus, NT>>(); }},
-        { "arsenic",    []() { return std::make_unique<CreateParams<Substrate<NType, Arsenic>, NType, Arsenic, NT>>(); }},
-        { "antimony",   []() { return std::make_unique<CreateParams<Substrate<NType, Antimony>, NType, Antimony, NT>>(); }},        
+        { "phosphorus", std::make_shared<CreateParams<Layer<NType, Phosphorus>, NType, Phosphorus, NT>>() },
+        { "arsenic",    std::make_shared<CreateParams<Layer<NType, Arsenic>,    NType, Arsenic,    NT>>() },
+        { "antimony",   std::make_shared<CreateParams<Layer<NType, Antimony>,   NType, Antimony,   NT>>() },       
     };
 };
 
-template<NumericType NT>
-struct DopantsFactory<PType, NT>
+template<NumericType NT, template<typename ...> class L>
+struct DopantsFactory<PType, NT, L>
 {
-    inline static const std::map<std::string, std::function<std::unique_ptr<IParameterObject<NT>>()>> map
+    template<typename... Args>
+    using Layer = L<Args...>;
+
+    inline static const std::map<std::string, std::shared_ptr<ParameterObject<NT>>> map
     {     
-        { "boron", []() { return std::make_unique<CreateParams<Substrate<PType, Boron>, PType, Boron, NT>>(); }},        
+        { "boron", std::make_shared<CreateParams<Layer<PType, Boron>, PType, Boron, NT>>() }, 
     };
 };
 
 struct IRouter 
 {
     virtual ~IRouter() = default;
-    virtual std::optional<std::unique_ptr<ICommand>> dispatch(const std::string&) = 0;
+    using CommandFactory = std::function<std::unique_ptr<ICommand>(std::shared_ptr<IParameterObject>)>;
+
+    virtual CommandFactory dispatchCommand(CommandScheme&) = 0;
+    virtual std::shared_ptr<IParameterObject> extractArgs(CommandScheme&) = 0;
 };
 
 template<NumericType NT>
 class Router : public IRouter
 {
 public:
-    using CommandFactory = std::function<std::unique_ptr<ICommand>(const IParameterObject<NT>&)>;
-
-    using ParamFactory = std::function<std::unique_ptr<IParameterObject<NT>>()>;
-
     Router();
     
-    std::optional<CommandFactory> dispatch(const std::string&);
+    virtual CommandFactory dispatchCommand(CommandScheme&) override;
+    std::shared_ptr<IParameterObject> extractArgs(CommandScheme&) override;
 
 private:
     template<typename CommandType>
-    void registerCommand(const std::string& command)
-    {
-        static_assert(std::is_base_of<ICommand, CommandType>::value, "CommandType must inherit from Command");
+    void registerCommand(const std::string& command);
 
-        m_commandsFactories[command] = [](const IParameterObject<NT>& param)
-        {
-            return std::make_unique<CommandType>(param);
-        };
-    }
+    template<typename Semi, template<typename ...> class L>
+    std::shared_ptr<ParameterObject<NT>> createLayer(CommandScheme&, const std::string&);
 
-    template<typename Semi>
-    std::unique_ptr<IParameterObject<NT>> createSubstrate(const CommandScheme&, std::string_view&);
-
-    void fillArgs(IParameterObject<NT>*, const CommandScheme&);
+    void fillArgs(ParameterObject<NT>*, CommandScheme&);
     
-    void registerParams(const CommandScheme&);
-
-    std::unordered_map<std::string, ParamFactory> m_paramsFactories;
     std::unordered_map<std::string, CommandFactory> m_commandsFactories;
 };
 

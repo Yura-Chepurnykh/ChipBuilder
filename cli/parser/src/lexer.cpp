@@ -13,7 +13,7 @@ Token Lexer::getCurrentToken()
 
         for (char c : tok)
         {
-            if (!std::isalnum(static_cast<unsigned char>(c)))
+            if (!std::isalnum(static_cast<unsigned char>(c)) && static_cast<unsigned char>(c) != '-')
                 throw UnexpectedSymbolError(std::string("Unexpected symbol '") + c + "' in identifier '" + tok + "'");
         }
     };
@@ -46,7 +46,7 @@ Token Lexer::getCurrentToken()
                 throw EmptyStringError("Empty string literal \"\" is not allowed");
 
             m_pos = iter + 1;
-            return Token { m_pos, content, Type::String };
+            return Token { m_pos, content.substr(1, content.length() - 2), Type::String };
         }
 
         throw UnterminatedStringError(std::string("Unterminated string literal: ") + token +  "missing closing \"");

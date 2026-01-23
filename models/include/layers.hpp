@@ -2,8 +2,8 @@
 #define LAYERS_HPP
 
 // tags (N/P)
-struct NType;
-struct PType;
+struct NType { }; 
+struct PType { };
 
 struct Layer { };
 

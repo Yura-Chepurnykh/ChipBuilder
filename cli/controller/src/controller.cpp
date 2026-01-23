@@ -12,8 +12,10 @@ void Controller::run()
         Parser parser(input);
         auto scheme = parser.parse();
         
+        auto factory = m_router->dispatchCommand(scheme);
+        std::shared_ptr<IParameterObject> args = m_router->extractArgs(scheme);
 
-        auto command = m_router->dispatch(scheme.command.content);
-        // command(params)->execute();
+        std::shared_ptr<ICommand> cmd = factory(args);
+        cmd->execute();
     }
 }

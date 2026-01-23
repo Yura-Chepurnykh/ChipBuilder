@@ -10,8 +10,8 @@ enum class ParserExitCode
     UnknownCommand,
     UnknownOption,
     UnknownFlag,
-    MissingArgument,
-    IncorrectOrder
+    MissingOption, 
+    MissingArgument
 };
 
 std::ostream& operator<<(std::ostream&, ParserExitCode);
@@ -39,11 +39,12 @@ public:
     UnknownOptionError(const std::string&);
 };
 
-class UnknownFlagError : public SyntaxError 
-{
-public:
-    UnknownFlagError(const std::string&);
-};
+// TODO: may be using later
+// class UnknownFlagError : public SyntaxError 
+// {
+// public:
+//     UnknownFlagError(const std::string&);
+// };
 
 class MissingArgumentError : public SyntaxError 
 {
@@ -51,10 +52,10 @@ public:
     MissingArgumentError(const std::string&);
 };
 
-class IncorrectOrderError : public SyntaxError 
+class MissingOptionError : public SyntaxError 
 {
 public:
-    IncorrectOrderError(const std::string&);
+    MissingOptionError(const std::string&);
 };
 
 #endif // PARSER_VALIDATION_HPP

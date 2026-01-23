@@ -2,9 +2,12 @@
 #define COMMANDS_HPP
 
 #include <string>
+#include <memory>
+
 #include "layers.hpp"
 #include "circuits.hpp"
 #include "context.hpp"
+#include "parameter_object.hpp"
 
 class ICommand 
 {
@@ -17,55 +20,55 @@ template<typename S>
 class CreateMOSCommand : public ICommand 
 {
 public:
-    CreateMOSCommand(const std::string& name);
+    CreateMOSCommand(std::shared_ptr<IParameterObject>);
     void execute() override;
 
 private:
-    std::string m_name;
+    std::shared_ptr<IParameterObject> m_params;
 };
 
 template<typename S, typename D>
 class CreateSubstrateCommand : public ICommand
 {
 public:
-    CreateSubstrateCommand(MOSContext<S, D>&);
+    CreateSubstrateCommand(std::shared_ptr<IParameterObject>);
     void execute() override;
 
 private:
-    MOSContext<S>& m_context;
+    std::shared_ptr<IParameterObject> m_params;
 };
 
 template<typename S, typename Diffusion, typename D>
 class CreateDiffusionCommand : public ICommand 
 {
 public:
-    CreateDiffusionCommand(MOSContext<S>&);
+    CreateDiffusionCommand(std::shared_ptr<IParameterObject>);
     void execute() override;
 
 private:
-    MOSContext<S>& m_context;
+    std::shared_ptr<IParameterObject> m_params;
 };
 
 template<typename S>
 class CreatePolyCommand : public ICommand 
 {
 public:
-    CreatePolyCommand(MOSContext<S>&);
+    CreatePolyCommand(std::shared_ptr<IParameterObject>);
     void execute() override;
 
 private:
-    MOSContext<S>& m_context;
+    std::shared_ptr<IParameterObject> m_params;
 };
 
 template<typename S>
 class CreateOxideCommand : public ICommand 
 {
 public:
-    CreateOxideCommand(MOSContext<S>&);
+    CreateOxideCommand(std::shared_ptr<IParameterObject>);
     void execute() override;
 
 private:
-    MOSContext<S>& m_context;
+    std::shared_ptr<IParameterObject> m_params;
 };
 
 #include "commands.tpp"

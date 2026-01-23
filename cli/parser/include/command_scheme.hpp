@@ -43,7 +43,7 @@ struct CommandScheme
     // Token subCommand;
     std::vector<OptionToArgument> optionsToArguments;
     // std::vector<Token> flags;
-    Token flag;
+    // Token flag;
 };
 
 #endif // COMMAND_HPP
