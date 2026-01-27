@@ -1,7 +1,8 @@
 #include "layer.hpp"
 
-Layer::Layer(const QRectF& r, const QColor& color) : m_rect(r), m_color(color)
+Layer::Layer(const QRectF& r, Type type) : m_rect(r), m_type(type)
 {
+    m_color = colorMap[type];
     this->setFlag(QGraphicsItem::ItemIsSelectable);
     this->setFlag(QGraphicsItem::ItemIsMovable);
 }
@@ -20,3 +21,18 @@ void Layer::paint(QPainter *painter, const QStyleOptionGraphicsItem* option, QWi
     painter->drawRect(boundingRect());
 }
 
+QLabel* Layer::info()
+{
+    switch(m_type)
+    {
+        case Type::NSubstrate:  return new QLabel("N-Substrate");
+        case Type::PSubstrate:  return new QLabel("P-Substrate");
+        case Type::NSource:     return new QLabel("N-Source");
+        case Type::PSource:     return new QLabel("P-Source");
+        case Type::NDrain:      return new QLabel("N-Drain");
+        case Type::PDrain:      return new QLabel("P-Drain");
+        case Type::Oxide:       return new QLabel("Oxide");
+        case Type::Polysilicon: return new QLabel("Polysilicon");
+        default: return new QLabel("Unknown layer");
+    }
+}

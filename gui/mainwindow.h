@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QGraphicsView>
 #include "scene.hpp"
+#include "view.hpp"
+#include "toolbar.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,8 +22,9 @@ public:
     ~MainWindow();
 
 private:
-    QGraphicsView* m_view;
+    View* m_view;
     Scene* m_scene;
+    ToolBar* m_toolBar;
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H

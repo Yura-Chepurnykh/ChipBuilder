@@ -6,21 +6,48 @@
 #include <QHash>
 #include <QColor>
 #include <QPainter>
+#include <QLabel>
 
 class Layer : public QGraphicsItem
 {
 public:
-    Layer(const QRectF&, const QColor&);
+    enum class Type
+    {
+        NSubstrate,
+        PSubstrate,
+        NSource,
+        PSource,
+        NDrain,
+        PDrain,
+        Oxide,
+        Polysilicon
+    };
 
-    QRectF boundingRect() const override;
+    const QHash<Type, QColor> colorMap
+    {
+        { Type::NSubstrate,  Qt::gray     },
+        { Type::PSubstrate,  Qt::red      },
+        { Type::NSource,     Qt::blue     },
+        { Type::PSource,     Qt::darkCyan },
+        { Type::NDrain,      Qt::cyan     },
+        { Type::PDrain,      Qt::yellow   },
+        { Type::Oxide,       Qt::green    },
+        { Type::Polysilicon, Qt::black    }
+    };
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+    Layer(const QRectF&, Type);
+    QLabel* info();
 
     // getters
     QRectF getRect();
     QRectF const getRect() const;
 
+protected:
+    QRectF boundingRect() const override;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
 private:
+    Type m_type;
     QColor m_color;
     QRectF m_rect;
 };

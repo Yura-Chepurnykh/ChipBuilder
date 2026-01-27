@@ -12,12 +12,16 @@ SOURCES += \
     layer.cpp \
     main.cpp \
     mainwindow.cpp \
-    scene.cpp
+    scene.cpp \
+    toolbar.cpp \
+    view.cpp
 
 HEADERS += \
     layer.hpp \
     mainwindow.h \
-    scene.hpp
+    scene.hpp \
+    toolbar.hpp \
+    view.hpp
 
 FORMS += \
     mainwindow.ui
