@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QObject>
 #include <QVector>
+#include <cmath>
 #include "layer.hpp"
 
 class Scene : public QGraphicsScene
@@ -12,12 +13,15 @@ class Scene : public QGraphicsScene
 
 public:
     Scene() = default;
+    Scene(qreal);
+
+    void drawBackground(QPainter *painter, const QRectF &rect) override;
 
     void add(Layer*);
     void remove(Layer*);
 
 private:
-    qreal gap;
+    qreal m_gap;
     QVector<Layer> m_layers;
 };
 
