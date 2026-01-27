@@ -7,6 +7,9 @@ void Scene::remove(Layer* layer) { removeItem(layer); }
 
 void Scene::drawBackground(QPainter* painter, const QRectF& rect)
 {
+    if (!drawGrid)
+        return;
+
     painter->setPen(QPen(Qt::red));
 
     for (auto left = std::floor(rect.left() / m_gap) * m_gap; left < rect.right(); left += m_gap)
@@ -19,3 +22,23 @@ void Scene::drawBackground(QPainter* painter, const QRectF& rect)
         painter->drawLine(rect.left(), top, rect.right(), top);
     }
 }
+
+void Scene::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_G)
+        drawGrid = !drawGrid;
+    update();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

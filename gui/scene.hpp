@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QObject>
 #include <QVector>
+#include <QKeyEvent>
 #include <cmath>
 #include "layer.hpp"
 
@@ -16,11 +17,13 @@ public:
     Scene(qreal);
 
     void drawBackground(QPainter *painter, const QRectF &rect) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
     void add(Layer*);
     void remove(Layer*);
 
 private:
+    bool drawGrid = false;
     qreal m_gap;
     QVector<Layer> m_layers;
 };
