@@ -24,6 +24,54 @@ void Scene::drawBackground(QPainter* painter, const QRectF& rect)
     }
 }
 
+void Scene::nSubstrate()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NSubstrate, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::pSubstrate()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PSubstrate, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::nSource()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NSource, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::pSource()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PSource, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::nDrain()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NDrain, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::pDrain()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PDrain, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::oxide()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::Oxide, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
+void Scene::polysilicon()
+{
+    m_context = std::make_optional(CurrentLayerContext{ Layer::Type::Polysilicon, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
+    update();
+}
+
 void Scene::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_G)
@@ -31,59 +79,19 @@ void Scene::keyPressEvent(QKeyEvent* event)
     update();
 }
 
-void Scene::nSubstrate()
-{
-    currentLayer = std::make_optional(Layer::Type::NSubstrate);
-    update();
-}
-
-void Scene::pSubstrate()
-{
-    currentLayer = std::make_optional(Layer::Type::PSubstrate);
-    update();
-}
-
-void Scene::nSource()
-{
-    currentLayer = std::make_optional(Layer::Type::NSource);
-    update();
-}
-
-void Scene::pSource()
-{
-    currentLayer = std::make_optional(Layer::Type::PSource);
-    update();
-}
-
-void Scene::nDrain()
-{
-    currentLayer = std::make_optional(Layer::Type::NDrain);
-    update();
-}
-
-void Scene::pDrain()
-{
-    currentLayer = std::make_optional(Layer::Type::PDrain);
-    update();
-}
-
-void Scene::oxide()
-{
-    currentLayer = std::make_optional(Layer::Type::Oxide);
-    update();
-}
-
-void Scene::polysilicon()
-{
-    currentLayer = std::make_optional(Layer::Type::Polysilicon);
-    update();
-}
-
 void Scene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (currentLayer.has_value())
+    if (m_context.has_value())
     {
-        qDebug() << "CurrentLayer is active\n";
+        m_context->leftTopCorner = event->scenePos();
+        m_preview = addRect(QRectF(m_context->leftTopCorner, m_context->leftTopCorner),
+                            QPen(Qt::darkGray, 2),
+                            QBrush(Qt::transparent));
+
+        m_flag = true;
+
+        event->accept();
+        return;
     }
 
     QGraphicsScene::mousePressEvent(event);
@@ -91,13 +99,50 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (currentLayer.has_value())
+    if (m_context.has_value() & m_flag)
     {
+        QRectF rect(m_context->leftTopCorner, event->scenePos());
+        rect = rect.normalized();
+
+        if (m_preview)
+            m_preview->setRect(rect);
+
         this->views().first()->setCursor(Qt::CrossCursor);
+
+        event->accept();
+        return;
     }
 
     QGraphicsScene::mouseMoveEvent(event);
 }
+
+void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+{
+    if (m_context.has_value() && m_flag)
+    {
+        QRectF rect(m_context->leftTopCorner, event->scenePos());
+        rect = rect.normalized();
+
+        Layer* newLayer = new Layer(rect, m_context->type);
+        add(newLayer);
+
+        m_context = std::nullopt;
+
+        if (m_preview)
+        {
+            removeItem(m_preview);
+            delete m_preview;
+            m_preview = nullptr;
+        }
+
+        m_flag = false;
+
+        this->views().first()->setCursor(Qt::ArrowCursor);
+    }
+
+    QGraphicsScene::mouseReleaseEvent(event);
+}
+
 
 
 

@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QGraphicsSceneWheelEvent>
 #include <QAction>
+#include <QGraphicsRectItem>
 #include <QDebug>
 #include <cmath>
 #include <utility>
@@ -22,6 +23,12 @@ class Scene : public QGraphicsScene
     Q_OBJECT
 
 public:
+    struct CurrentLayerContext
+    {
+        Layer::Type type;
+        QPointF leftTopCorner, rightBottomCorner;
+    };
+
     Scene() = default;
     Scene(qreal);
 
@@ -44,9 +51,12 @@ public slots:
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
 private:
-    std::optional<Layer::Type> currentLayer;
+    bool m_flag;
+    QGraphicsRectItem* m_preview;
+    std::optional<CurrentLayerContext> m_context;
     ToolBar* m_toolbar;
     bool drawGrid = false;
     qreal m_gap;

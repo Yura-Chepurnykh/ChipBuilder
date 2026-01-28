@@ -8,18 +8,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     m_scene = new Scene(50);
-
-    // testing layer
-    QRectF r(10, 10, 40, 40);
-    // QColor c(Qt::red);
-
-    Layer* layer = new Layer(r, Layer::Type::NSource);
-
-    m_scene->add(layer);
-
     m_view = new View(m_scene);
     m_view->setScene(m_scene);
-
     m_toolBar = new ToolBar();
 
     this->addToolBar(m_toolBar);
