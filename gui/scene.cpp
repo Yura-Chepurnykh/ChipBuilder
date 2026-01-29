@@ -2,16 +2,21 @@
 
 Scene::Scene(qreal g) : m_gap(g) { }
 
-void Scene::add(Layer* layer) { addItem(layer); }
+void Scene::add(Layer* layer)
+{
+    addItem(layer);
+}
 
 void Scene::remove(Layer* layer) { removeItem(layer); }
 
 void Scene::drawBackground(QPainter* painter, const QRectF& rect)
 {
+    painter->fillRect(rect, QColor("#141414"));
+
     if (!drawGrid)
         return;
 
-    painter->setPen(QPen(Qt::red));
+    painter->setPen(QPen(QColor("#1c1c1c")));
 
     for (auto left = std::floor(rect.left() / m_gap) * m_gap; left < rect.right(); left += m_gap)
     {
@@ -24,49 +29,49 @@ void Scene::drawBackground(QPainter* painter, const QRectF& rect)
     }
 }
 
-void Scene::nSubstrate()
+void Scene::nSubstrateCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NSubstrate, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::pSubstrate()
+void Scene::pSubstrateCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PSubstrate, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::nSource()
+void Scene::nSourceCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NSource, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::pSource()
+void Scene::pSourceCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PSource, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::nDrain()
+void Scene::nDrainCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::NDrain, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::pDrain()
+void Scene::pDrainCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::PDrain, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::oxide()
+void Scene::oxideCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::Oxide, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
 }
 
-void Scene::polysilicon()
+void Scene::polysiliconCreate()
 {
     m_context = std::make_optional(CurrentLayerContext{ Layer::Type::Polysilicon, { 0.0f, 0.0f }, { 0.0f, 0.0f } });
     update();
@@ -75,23 +80,36 @@ void Scene::polysilicon()
 void Scene::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_G)
+    {
         drawGrid = !drawGrid;
+    }
+    if (event->key() == Qt::Key_Delete && m_activeLayer)
+    {
+        remove(m_activeLayer);
+        m_activeLayer = nullptr;
+    }
     update();
 }
 
 void Scene::mousePressEvent(QGraphicsSceneMouseEvent* event)
-{
+{   
     if (m_context.has_value())
     {
         m_context->leftTopCorner = event->scenePos();
         m_preview = addRect(QRectF(m_context->leftTopCorner, m_context->leftTopCorner),
                             QPen(Qt::darkGray, 2),
                             QBrush(Qt::transparent));
-
-        m_flag = true;
+        m_isAdd = true;
 
         event->accept();
         return;
+    }
+
+    if (QGraphicsItem* item = itemAt(event->scenePos(), QTransform()); item != nullptr)
+    {
+        m_activeLayer = dynamic_cast<Layer*>(item);
+        m_activeLayer->setBorderColor(QColor("#0ac423"));
+        m_activeLayer->setBorderWidth(2);
     }
 
     QGraphicsScene::mousePressEvent(event);
@@ -99,7 +117,7 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (m_context.has_value() & m_flag)
+    if (m_context.has_value() & m_isAdd)
     {
         QRectF rect(m_context->leftTopCorner, event->scenePos());
         rect = rect.normalized();
@@ -118,7 +136,7 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (m_context.has_value() && m_flag)
+    if (m_context.has_value() && m_isAdd)
     {
         QRectF rect(m_context->leftTopCorner, event->scenePos());
         rect = rect.normalized();
@@ -135,8 +153,7 @@ void Scene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
             m_preview = nullptr;
         }
 
-        m_flag = false;
-
+        m_isAdd = false;
         this->views().first()->setCursor(Qt::ArrowCursor);
     }
 

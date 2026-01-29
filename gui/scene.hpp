@@ -39,14 +39,14 @@ public:
     void remove(Layer*);
 
 public slots:
-    void nSubstrate();
-    void pSubstrate();
-    void nSource();
-    void pSource();
-    void nDrain();
-    void pDrain();
-    void oxide();
-    void polysilicon();
+    void nSubstrateCreate();
+    void pSubstrateCreate();
+    void nSourceCreate();
+    void pSourceCreate();
+    void nDrainCreate();
+    void pDrainCreate();
+    void oxideCreate();
+    void polysiliconCreate();
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
@@ -54,7 +54,8 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
 private:
-    bool m_flag;
+    bool m_isAdd;
+    Layer* m_activeLayer;
     QGraphicsRectItem* m_preview;
     std::optional<CurrentLayerContext> m_context;
     ToolBar* m_toolbar;
