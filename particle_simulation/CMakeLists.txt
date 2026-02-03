@@ -11,7 +11,14 @@ add_library(glad STATIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/src/glad.c)
 
 target_include_directories(glad PUBLIC ./third_party/glad/include)
 
-add_executable(particle_simulation main.cpp)
+add_executable(
+    particle_simulation 
+    src/glfw.cpp
+    src/exceptions.cpp
+    main.cpp
+)
+
+target_include_directories(particle_simulation PUBLIC ./include)
 
 target_link_libraries(
     particle_simulation
