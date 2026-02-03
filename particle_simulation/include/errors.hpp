@@ -7,8 +7,9 @@
 
 enum class ExitCode
 {
-    GLFWInitFailed = 1,
-    GLFWWindowFailed = 2
+    GLFWInitFailed   = 1,
+    GLFWWindowFailed = 2,
+    GladInitFailed   = 3
 };
 
 std::ostream& operator<<(std::ostream&, ExitCode);
@@ -35,6 +36,12 @@ class GLFWWindowFailedError : public GLFWError
 {
 public:
     explicit GLFWWindowFailedError(const std::string&);
+};
+
+class GladInitFailedError : public GLFWError 
+{
+public: 
+    explicit GladInitFailedError(const std::string&);
 };
 
 #endif // EXCEPTIONS_HPP

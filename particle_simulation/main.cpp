@@ -1,7 +1,7 @@
 #include <iostream>
+#include "window.hpp"
 #include "glfw.hpp"
 #include "errors.hpp"
-#include "window.hpp"
 
 int main()
 {
@@ -11,6 +11,11 @@ int main()
         std::cout << window << std::endl;
     }
     catch(const GLFWInitFailedError& e)
+    {
+        std::cout << "Error: " << e.what() << std::endl;
+        return static_cast<unsigned int>(e.getCode());
+    }
+    catch(const GladInitFailedError& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
         return static_cast<unsigned int>(e.getCode());

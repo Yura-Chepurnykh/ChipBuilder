@@ -21,6 +21,23 @@ Window::Window(
         std::cerr << "Window initialization failed" << std::endl;
         throw GLFWWindowFailedError("Window initialization failed");
     }
+
+    glfwMakeContextCurrent(m_window);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cerr << "Glad initialization failed" << std::endl;
+        throw GladInitFailedError("Glad initializaion failed");
+    }
+
+    while (!glfwWindowShouldClose(m_window))
+    {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glfwSwapBuffers(m_window);
+        glfwPollEvents();
+    }
 }
 
 Window::~Window()
