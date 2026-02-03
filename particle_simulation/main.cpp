@@ -1,13 +1,16 @@
 #include <iostream>
 #include "glfw.hpp"
-#include "exceptions.hpp"
+#include "errors.hpp"
+#include "window.hpp"
 
 int main()
 {
     try {
         GLFW::instance();
+        Window window = WindowBuilder().setWidth(1600).setHeight(900).setTitle("Particle Simulation").setMonitor(nullptr).setShare(nullptr).build();
+        std::cout << window << std::endl;
     }
-    catch(const GLFWInitFailed& e)
+    catch(const GLFWInitFailedError& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
         return static_cast<unsigned int>(e.getCode());

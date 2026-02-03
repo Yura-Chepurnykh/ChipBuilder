@@ -1,13 +1,13 @@
 #include <iostream>
 #include "glfw.hpp"
-#include "exceptions.hpp"
+#include "errors.hpp"
 
 GLFW::GLFW()
 {
     if (!glfwInit())
     {
         std::cerr << "Failed to initialized glfw" << std::endl;
-        throw GLFWInitFailed("GLFW initialization failed");
+        throw GLFWInitFailedError("GLFW initialization failed");
     }
 }
 

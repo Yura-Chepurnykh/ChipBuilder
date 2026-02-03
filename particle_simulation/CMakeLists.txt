@@ -14,7 +14,8 @@ target_include_directories(glad PUBLIC ./third_party/glad/include)
 add_executable(
     particle_simulation 
     src/glfw.cpp
-    src/exceptions.cpp
+    src/errors.cpp
+    src/window.cpp
     main.cpp
 )
 
