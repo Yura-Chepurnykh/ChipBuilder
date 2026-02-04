@@ -1,15 +1,17 @@
 #include "errors.hpp"
 
-GLFWError::GLFWError(const std::string& message, ExitCode code) : 
+GLError::GLError(const std::string& message, ExitCode code) : 
     std::runtime_error(message), m_code(code) { }
 
-ExitCode GLFWError::getCode() const { return m_code; }
+ExitCode GLError::getCode() const { return m_code; }
 
-GLFWInitFailedError::GLFWInitFailedError(const std::string& m) : GLFWError(m, ExitCode::GLFWInitFailed) { }
+GLFWInitFailedError::GLFWInitFailedError(const std::string& m) : GLError(m, ExitCode::GLFWInitFailed) { }
 
-GLFWWindowFailedError::GLFWWindowFailedError(const std::string& m) : GLFWError(m, ExitCode::GLFWWindowFailed) { }
+GLFWWindowFailedError::GLFWWindowFailedError(const std::string& m) : GLError(m, ExitCode::GLFWWindowFailed) { }
 
-GladInitFailedError::GladInitFailedError(const std::string& m) : GLFWError(m, ExitCode::GladInitFailed) { }
+GladInitFailedError::GladInitFailedError(const std::string& m) : GLError(m, ExitCode::GladInitFailed) { }
+
+ShaderLinkFailedError::ShaderLinkFailedError(const std::string& m) : GLError(m, ExitCode::ShaderLinkFailed) { }
 
 std::ostream& operator<<(std::ostream& stream, ExitCode code)
 {
@@ -18,6 +20,7 @@ std::ostream& operator<<(std::ostream& stream, ExitCode code)
         case ExitCode::GLFWInitFailed: return stream << "GLFWInitFailed";
         case ExitCode::GLFWWindowFailed: return stream << "GLFWWindowFailed";
         case ExitCode::GladInitFailed: return stream << "GladInitFailed";
+        case ExitCode::ShaderLinkFailed: return stream << "ShaderLinkFailed";
         default: return stream << "Unknown code";
     }
 }

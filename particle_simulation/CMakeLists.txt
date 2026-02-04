@@ -16,6 +16,8 @@ add_executable(
     src/glfw.cpp
     src/errors.cpp
     src/window.cpp
+    src/mesh.cpp
+    src/shaders.cpp
     main.cpp
 )
 

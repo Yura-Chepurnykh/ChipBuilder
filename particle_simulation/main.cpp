@@ -2,6 +2,8 @@
 #include "window.hpp"
 #include "glfw.hpp"
 #include "errors.hpp"
+#include "mesh.hpp"
+#include "shaders.hpp"
 
 int main()
 {

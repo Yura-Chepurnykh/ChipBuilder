@@ -30,10 +30,22 @@ Window::Window(
         throw GladInitFailedError("Glad initializaion failed");
     }
 
+    float vertices[] = {
+        -0.4f, 0.5f, 1.0f,
+        0.5f, 0.9f, 0.6f,
+        -1.0f, -1.0f, 1.0f
+    };
+
+    Mesh mesh(vertices, sizeof(vertices));
+    GLuint shaderProgram = createShaderProgram(vertexShader, fragmentShader);
+
     while (!glfwWindowShouldClose(m_window))
     {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(shaderProgram);
+        mesh.draw();
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
