@@ -1,0 +1,66 @@
+#ifndef GEOMETRY_HPP
+#define GEOMETRY_HPP
+
+#include <vector>
+#include <cmath>
+
+// We are not use templates for Pos and Rect, since 
+// in VLSI does not use floating point numbers, instead
+// for present number used the power, for example
+// 4.5 * 10e-9 => 45 * 10e-10
+
+// From gemotries point of view line does not have thickness,
+// line is an abstract object 
+
+struct Point
+{
+    Point(unsigned int id, int x, int y) noexcept : id(id), x(x), y(y) { }
+    
+    unsigned int id;
+    int x, y;
+};
+
+// dummy class for polymorphism
+struct IShape
+{
+    virtual ~IShape() = default;
+    virtual void move(int dx, int dy) = 0;
+};
+
+struct Polygon final : public IShape 
+{
+    Polygon(const std::vector<Point>& points) noexcept : m_points(points) { }
+
+    void move(int dx, int dy) override 
+    {
+        for (auto& p : m_points)
+        {
+            p.x += dx;
+            p.y += dy;
+        }
+    }
+
+    std::vector<Point> m_points;
+};
+
+struct Rect final : public IShape
+{
+    Rect(Point p, int w, int h) noexcept : point(p), width(w), height(h) { }
+
+    Rect(Point leftTop, Point rightBottom) noexcept : point(leftTop)
+    {
+        width = std::abs(rightBottom.x - leftTop.x);
+        height = std::abs(rightBottom.y - leftTop.y);
+    }
+
+    void move(int dx, int dy) override 
+    {
+        point.x += dx;
+        point.y += dy;
+    } 
+
+    Point point;
+    int width, height;
+};
+
+#endif // GEOMETRY_HPP
