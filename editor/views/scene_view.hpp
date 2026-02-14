@@ -15,6 +15,7 @@
 #include <optional>
 #include <memory>
 #include "toolbar.hpp"
+#include "layer_view.hpp"
 #include "metal_view.hpp"
 
 class Toolbar;
@@ -25,6 +26,9 @@ class SceneView : public QGraphicsScene
 
 public:
     SceneView() = default;
+
+    QGraphicsRectItem* preview = nullptr;
+    QPointF startPoint;
 
 signals:
     void sceneClick(const QPointF&);

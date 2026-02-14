@@ -1,4 +1,5 @@
 #include "scene_view.hpp"
+#include "layer_view.hpp"
 
 void SceneView::drawBackground(QPainter* painter, const QRectF& rect)
 {
@@ -27,24 +28,35 @@ void SceneView::drawBackground(QPainter* painter, const QRectF& rect)
 
 void SceneView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    // qInfo() << "mousePressEvent";
+    startPoint = event->scenePos();
+    preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1));
+
     emit sceneClick(event->scenePos());
     event->accept();
 }
 
 void SceneView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (preview)
+    {
+        QRectF rect(startPoint, event->scenePos());
+        rect = rect.normalized();
+        preview->setRect(rect);
+    }
+
     emit sceneMouseMove(event->scenePos());
-    // :w:qInfo() << "mouseMoveEvent";
     event->accept();
 }
 
-// void SceneView::keyPressEvent(QKeyEvent* event)
-// {
-// }
-
 void SceneView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (preview)
+    {
+        removeItem(preview);
+        delete preview;
+        preview = nullptr;
+    }
+
     emit sceneMouseRelease(event->scenePos());
 }
 
