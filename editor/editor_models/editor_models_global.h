@@ -1,0 +1,12 @@
+#ifndef EDITOR_MODELS_GLOBAL_H
+#define EDITOR_MODELS_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(EDITOR_MODELS_LIBRARY)
+#define EDITOR_MODELS_EXPORT Q_DECL_EXPORT
+#else
+#define EDITOR_MODELS_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // EDITOR_MODELS_GLOBAL_H

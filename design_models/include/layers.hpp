@@ -27,8 +27,8 @@ protected:
 class CircuitLayout : public AComponent 
 {
 public:
-    CircuitLayout(unsigned int id, const std::vector<std::unique_ptr<AComponent>>& components) :
-        AComponent(id), m_components(components) { }
+    CircuitLayout(unsigned int id, std::vector<std::unique_ptr<AComponent>> components) :
+        AComponent(id), m_components(std::move(components)) { }
 
     void add(std::unique_ptr<AComponent> c) 
     {
@@ -76,24 +76,24 @@ private:
 };
 
 template<SemiconductorType Type>
-class Semiconductor : Layer 
+class Semiconductor : public Layer 
 {
 protected:
-    Semiconductor(unsigned int id, std::unique_ptr<IShape> shape) : Layer(id, shape) { }
+    Semiconductor(unsigned int id, std::unique_ptr<IShape> shape) : Layer(id, std::move(shape)) { }
 };
 
 template<SemiconductorType Type>
 class Substrate final : public Semiconductor<Type> 
 {
 public:
-    Substrate(unsigned int id, std::unique_ptr<IShape> shape) noexcept : Semiconductor<Type>(id, shape) { }
+    Substrate(unsigned int id, std::unique_ptr<IShape> shape) noexcept : Semiconductor<Type>(id, std::move(shape)) { }
 };
 
 template<SemiconductorType Type>
 class Diffusion final : public Semiconductor<Type> 
 {
 public:
-    Diffusion(unsigned int id, std::unique_ptr<IShape> shape) noexcept : Semiconductor<Type>(id, shape) { }
+    Diffusion(unsigned int id, std::unique_ptr<IShape> shape) noexcept : Semiconductor<Type>(id, std::move(shape)) { }
 };
 
 template<size_t N>

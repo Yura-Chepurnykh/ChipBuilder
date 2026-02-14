@@ -14,8 +14,8 @@
 
 struct Point
 {
-    Point(unsigned int id, int x, int y) noexcept : id(id), x(x), y(y) { }
-    
+    Point(unsigned int id = -1, int x = int(), int y = int()) noexcept : id(id), x(x), y(y) { }
+
     unsigned int id;
     int x, y;
 };
@@ -45,12 +45,23 @@ struct Polygon final : public IShape
 
 struct Rect final : public IShape
 {
-    Rect(Point p, int w, int h) noexcept : point(p), width(w), height(h) { }
+    Rect(Point p = Point(), int w = int(), int h = int()) noexcept : point(p), width(w), height(h) { }
 
     Rect(Point leftTop, Point rightBottom) noexcept : point(leftTop)
     {
         width = std::abs(rightBottom.x - leftTop.x);
         height = std::abs(rightBottom.y - leftTop.y);
+    }
+    
+    void setTopLeft(const Point& p) 
+    {
+        point = p;
+    }
+
+    void setBottomRight(const Point& p)
+    {
+        width = std::abs(p.x - point.x);
+        height = std::abs(p.y - point.y);
     }
 
     void move(int dx, int dy) override 
