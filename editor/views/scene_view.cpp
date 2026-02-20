@@ -26,6 +26,17 @@ void SceneView::drawBackground(QPainter* painter, const QRectF& rect)
     }
 }
 
+void SceneView::keyPressEvent(QKeyEvent* event)
+{
+    switch(event->key())
+    {
+    case Qt::Key_M:
+        emit MKeyPress();
+    }
+
+    event->accept();
+}
+
 void SceneView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     startPoint = event->scenePos();

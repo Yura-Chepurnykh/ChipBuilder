@@ -21,3 +21,17 @@ QRectF toQRectF(const Rect& r)
     qreal h = static_cast<qreal>(r.height);
     return QRectF(p.x(), p.y(), w, h);
 }
+
+QVector<std::shared_ptr<QPointF>> toQSharedPolygon(const Polygon& polygon)
+{
+    QVector<std::shared_ptr<QPointF>> sharedPolygon;
+
+    for (int i = 0; i < polygon.m_points.size(); ++i)
+    {
+        QPointF qPointF = toQPointF(polygon.m_points[i]);
+        auto sharedQPointF = std::make_shared<QPointF>(qPointF);
+        sharedPolygon.push_back(sharedQPointF);
+    }
+
+    return sharedPolygon;
+}

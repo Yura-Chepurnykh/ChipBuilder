@@ -4,6 +4,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++23
 
+QMAKE_CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer -g
+QMAKE_LFLAGS += -fsanitize=address
+
 INCLUDEPATH += ../../design_models/include
 INCLUDEPATH += ../views/
 INCLUDEPATH += ../presenters/
@@ -42,16 +45,16 @@ else:unix: LIBS += -L$$PWD/../views/build/ -lviews
 INCLUDEPATH += $$PWD/../views/build
 DEPENDPATH += $$PWD/../views/build
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../presenters/build/Desktop-Debug/release/ -lpresenters
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../presenters/build/Desktop-Debug/debug/ -lpresenters
-else:unix: LIBS += -L$$PWD/../presenters/build/Desktop-Debug/ -lpresenters
-
-INCLUDEPATH += $$PWD/../presenters/build/Desktop-Debug
-DEPENDPATH += $$PWD/../presenters/build/Desktop-Debug
-
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../editor_models/build/Desktop-Debug/release/ -leditor_models
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../editor_models/build/Desktop-Debug/debug/ -leditor_models
 else:unix: LIBS += -L$$PWD/../editor_models/build/Desktop-Debug/ -leditor_models
 
 INCLUDEPATH += $$PWD/../editor_models/build/Desktop-Debug
 DEPENDPATH += $$PWD/../editor_models/build/Desktop-Debug
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../presenters/build/Desktop-Debug/release/ -lpresenters
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../presenters/build/Desktop-Debug/debug/ -lpresenters
+else:unix: LIBS += -L$$PWD/../presenters/build/Desktop-Debug/ -lpresenters
+
+INCLUDEPATH += $$PWD/../presenters/build/Desktop-Debug
+DEPENDPATH += $$PWD/../presenters/build/Desktop-Debug

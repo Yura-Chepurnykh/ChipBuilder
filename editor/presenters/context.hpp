@@ -9,11 +9,12 @@
 class Context
 {
 public:
-    void add(std::shared_ptr<AComponent>);
-    void remove(unsigned int id);
+    Context() = default;
+    // void add(std::shared_ptr<AComponent>);
+    // void remove(unsigned int id);
 
-private:
-    std::vector<std::shared_ptr<AComponent>> m_components;
+// private:
+    CircuitLayout m_layout;
 };
 
 #endif // CONTEXT_HPP

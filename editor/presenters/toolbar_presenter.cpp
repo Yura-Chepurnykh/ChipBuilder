@@ -12,36 +12,36 @@ ToolbarPresenter::ToolbarPresenter(Toolbar* view) : m_toolbarView(view), m_selec
 
 void ToolbarPresenter::handleNSubstrateClick()
 {
-    m_selectedLayer = std::make_unique<Substrate<NType>>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<Substrate<NType>>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }
 
 void ToolbarPresenter::handlePSubstrateClick()
 {
-    m_selectedLayer = std::make_unique<Substrate<PType>>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<Substrate<PType>>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }
 
 void ToolbarPresenter::handleNDiffusionClick()
 {
-    m_selectedLayer = std::make_unique<Diffusion<NType>>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<Diffusion<NType>>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }
 
 void ToolbarPresenter::handlePDiffusionClick()
 {
-    m_selectedLayer = std::make_unique<Diffusion<PType>>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<Diffusion<PType>>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }
 
 void ToolbarPresenter::handleOxideClick()
 {
-    m_selectedLayer = std::make_unique<Oxide>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<Oxide>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }
 
 void ToolbarPresenter::handlePolysiliconClick()
 {
-    m_selectedLayer = std::make_unique<PolySilicon>(IdGenerator::generate(), nullptr);
-    emit selectedLayer(m_selectedLayer.get());
+    m_selectedLayer = std::make_shared<PolySilicon>(IdGenerator::generate(), nullptr);
+    emit selectedLayer(m_selectedLayer);
 }

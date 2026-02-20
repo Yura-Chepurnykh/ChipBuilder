@@ -25,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     layer_view.hpp \
+    menubar.hpp \
     metal_view.hpp \
     scene_view.hpp \
     toolbar.hpp \
@@ -36,7 +37,6 @@ FORMS +=
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
-
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../editor_models/build/release/ -leditor_models
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../editor_models/build/debug/ -leditor_models

@@ -10,11 +10,14 @@
 #include <QPainter>
 #include <memory>
 #include <iterator>
+#include "layer_model.hpp"
 
 class MetalView : public QGraphicsItem
 {
 public:
-    MetalView();
+    using QSharedPolygon = QVector<std::shared_ptr<QPointF>>;
+
+    MetalView(QSharedPolygon, Style);
     ~MetalView() = default;
 
 protected:
@@ -23,7 +26,7 @@ protected:
     QPainterPath shape() const override;
 
 private:
-    QPen m_pen;
+    Style m_style;
     QVector<std::shared_ptr<QPointF>> m_path;
 };
 

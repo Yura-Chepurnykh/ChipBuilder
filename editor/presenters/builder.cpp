@@ -18,7 +18,10 @@ IShapeBuilder& RectBuilder::onRelease(const Point& p)
     return *this;
 }
 
-IShapeBuilder& RectBuilder::onDouble(const Point&) { }
+IShapeBuilder& RectBuilder::onDouble(const Point&)
+{
+
+}
 
 std::unique_ptr<IShape> RectBuilder::build()
 {
@@ -38,6 +41,12 @@ IShapeBuilder& PolygonBuilder::onPress(const Point& p)
         m_polygon.m_points.push_back(p);
     }
 
+    return *this;
+}
+
+IShapeBuilder& PolygonBuilder::onRelease(const Point& p)
+{
+    onPress(p);
     return *this;
 }
 

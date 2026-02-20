@@ -46,38 +46,38 @@ void CreateLayerCommand::undo(SceneView& view, Context& context)
         m_undoAction->execute(view, context);
 }
 
-CreateLayerAction::CreateLayerAction(std::shared_ptr<AComponent> layer, std::shared_ptr<LayerView> view) :
+CreateLayerAction::CreateLayerAction(std::shared_ptr<AComponent> layer, QGraphicsItem* view) :
     m_layerModel(layer), m_layerView(view) { }
 
 void CreateLayerAction::execute(SceneView& view, Context& context)
 {
-    LayerView* viewPtr = new LayerView(m_layerView->getRect(), m_layerView->getStyle());
-    context.add(m_layerModel);
-    view.addItem(viewPtr);
+    // QGraphicsItem* viewPtr = new LayerView(m_layerView->getRect(), m_layerView->getStyle());
+    context.m_layout.add(m_layerModel);
+    view.addItem(m_layerView);
     view.update();
 }
 
 void CreateLayerAction::undo(SceneView& view, Context& context)
 {
-    context.remove(m_layerModel->id);
-    view.removeItem(m_layerView.get());
+    context.m_layout.remove(m_layerModel->id);
+    view.removeItem(m_layerView);
     view.update();
 }
 
-RemoveLayerAction::RemoveLayerAction(std::shared_ptr<Layer> layer, std::shared_ptr<LayerView> view) :
+RemoveLayerAction::RemoveLayerAction(std::shared_ptr<Layer> layer, QGraphicsItem* view) :
     m_view(view), m_model(layer) { }
 
 void RemoveLayerAction::execute(SceneView& view, Context& context)
 {
-    context.remove(m_model->id);
-    view.removeItem(m_view.get());
+    context.m_layout.remove(m_model->id);
+    view.removeItem(m_view);
     view.update();
 }
 
 void RemoveLayerAction::undo(SceneView& view, Context& context)
 {
-    context.add(m_model);
-    view.addItem(m_view.get());
+    context.m_layout.add(m_model);
+    view.addItem(m_view);
     view.update();
 }
 

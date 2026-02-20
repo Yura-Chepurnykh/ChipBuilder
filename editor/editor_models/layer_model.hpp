@@ -23,17 +23,21 @@ struct Style
     QPen pen;
 };
 
-class LayerModel
+class StyleModel
 {
 public:
-    LayerModel()
+    StyleModel()
     {
-        registerStyle(typeid(Substrate<NType>), Style{ QColor(Qt::red),     QPen(Qt::black, 1)});
-        registerStyle(typeid(Substrate<PType>), Style{ QColor(Qt::cyan),    QPen(Qt::black, 1)});
-        registerStyle(typeid(Diffusion<NType>), Style{ QColor(Qt::blue),    QPen(Qt::black, 1)});
-        registerStyle(typeid(Diffusion<PType>), Style{ QColor(Qt::gray),    QPen(Qt::black, 1)});
-        registerStyle(typeid(Oxide),            Style{ QColor(Qt::green),   QPen(Qt::black, 1)});
-        registerStyle(typeid(PolySilicon),      Style{ QColor(Qt::darkRed), QPen(Qt::black, 1)});
+        registerStyle(typeid(Substrate<NType>), Style{ QColor(Qt::red),         QPen(Qt::black, 1)});
+        registerStyle(typeid(Substrate<PType>), Style{ QColor(Qt::cyan),        QPen(Qt::black, 1)});
+        registerStyle(typeid(Diffusion<NType>), Style{ QColor(Qt::blue),        QPen(Qt::black, 1)});
+        registerStyle(typeid(Diffusion<PType>), Style{ QColor(Qt::gray),        QPen(Qt::black, 1)});
+        registerStyle(typeid(Oxide),            Style{ QColor(Qt::green),       QPen(Qt::black, 1)});
+        registerStyle(typeid(PolySilicon),      Style{ QColor(Qt::darkRed),     QPen(Qt::black, 1)});
+        registerStyle(typeid(Metal<1>),         Style{ QColor(Qt::magenta),     QPen(Qt::black, 1)});
+        registerStyle(typeid(Metal<2>),         Style{ QColor(Qt::darkMagenta), QPen(Qt::black, 1)});
+        registerStyle(typeid(Metal<3>),         Style{ QColor(Qt::darkCyan),    QPen(Qt::black, 1)});
+        registerStyle(typeid(Metal<4>),         Style{ QColor(Qt::darkYellow),  QPen(Qt::black, 1)});
     }
 
     void registerStyle(std::type_index idx, const Style& value)

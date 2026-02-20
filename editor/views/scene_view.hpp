@@ -35,13 +35,17 @@ signals:
     void sceneMouseMove(const QPointF&);
     void sceneMouseRelease(const QPointF&);
 
+signals:
+    void MKeyPress();
+
 protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;
-    // void keyPressEvent(QKeyEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
-    // void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+    // void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
 };
 
 #endif // SCENE_VIEW_H

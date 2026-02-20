@@ -1,5 +1,6 @@
 #include "scene_presenter.hpp"
 #include "mappers.hpp"
+#include "factories.hpp"
 
 ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     m_context(context),
@@ -8,10 +9,16 @@ ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     m_selectedLayer(nullptr),
     m_builder(nullptr)
 {
-    fprintf(stderr, "ScenePresenter\n");
     connect(&m_view, &SceneView::sceneClick, this, &ScenePresenter::handleSceneClick);
     connect(&m_view, &SceneView::sceneMouseMove, this, &ScenePresenter::handleMouseMove);
     connect(&m_view, &SceneView::sceneMouseRelease, this, &ScenePresenter::handleMouseRelease);
+    connect(&m_view, &SceneView::MKeyPress, this, &ScenePresenter::handleMKeyPress);
+}
+
+void ScenePresenter::handleMKeyPress()
+{
+    m_selectedLayer = std::make_unique<Metal<1>>(IdGenerator::generate(), nullptr);
+    m_builder = std::make_unique<PolygonBuilder>();
 }
 
 void ScenePresenter::setState(std::unique_ptr<IStrategy> state) { m_strategy = std::move(state); }
@@ -36,9 +43,9 @@ void ScenePresenter::handleMouseRelease(const QPointF& p)
     m_strategy->handle(p);
 }
 
-void ScenePresenter::onSelectedLayer(Layer* selected)
+void ScenePresenter::onSelectedLayer(std::shared_ptr<Layer> selected)
 {
-    m_selectedLayer = std::unique_ptr<Layer>(selected);
+    m_selectedLayer = selected;
     m_builder = std::make_unique<RectBuilder>();
 }
 
@@ -67,21 +74,18 @@ void ReleaseStrategy::handle(const QPointF& p)
 
     // create shape via builder
     auto shape = m_presenter.m_builder->onRelease(toPoint(p)).build();
+    auto style = StyleModel().getStyle(typeid(*m_presenter.m_selectedLayer));
 
     // create views base on model data
-    if (auto r = dynamic_cast<Rect*>(shape.get()); r != nullptr)
-    {
-        auto rect = toQRectF(*r);
-        auto layerView = std::make_shared<LayerView>(rect, *LayerModel().getStyle(typeid(*m_presenter.m_selectedLayer)));
-        m_presenter.m_selectedLayer->setShape(std::move(shape));
+    auto view = ViewFactory::create(std::move(shape), *style);
+    m_presenter.m_selectedLayer->setShape(std::move(shape));
 
-        auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedLayer, layerView);
-        auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedLayer, layerView);
-        auto command = std::make_shared<CreateLayerCommand>(action, undoAction);
+    auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedLayer, view);
+    auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedLayer, view);
+    auto command = std::make_shared<CreateLayerCommand>(action, undoAction);
 
-        CommandManager manager;
-        manager.execute(command, m_presenter.m_context, m_presenter.m_view);
-    }
+    CommandManager manager;
+    manager.execute(command, m_presenter.m_context, m_presenter.m_view);
 }
 
 DoubleClickStrategy::DoubleClickStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }

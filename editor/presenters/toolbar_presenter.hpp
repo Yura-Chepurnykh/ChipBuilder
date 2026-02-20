@@ -22,7 +22,7 @@ public:
     SceneController* sceneController;
 
 signals:
-    void selectedLayer(Layer*);
+    void selectedLayer(std::shared_ptr<Layer>);
 
 public slots:
     void handleNSubstrateClick();
@@ -33,7 +33,7 @@ public slots:
     void handlePolysiliconClick();
 
 private:
-    std::unique_ptr<Layer> m_selectedLayer;
+    std::shared_ptr<Layer> m_selectedLayer;
     Toolbar* m_toolbarView;
 };
 

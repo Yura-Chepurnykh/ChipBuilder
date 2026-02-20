@@ -13,6 +13,7 @@ INCLUDEPATH += ../../design_models/include
 INCLUDEPATH += ../editor_models/
 INCLUDEPATH += ../views/
 INCLUDEPATH += ../../utils/include
+INCLUDEPATH += ../serializers/include
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -22,6 +23,7 @@ SOURCES += \
     builder.cpp \
     commands.cpp \
     context.cpp \
+    factories.cpp \
     mappers.cpp \
     scene_presenter.cpp \
     toolbar_presenter.cpp
@@ -30,7 +32,9 @@ HEADERS += \
     builder.hpp \
     commands.hpp \
     context.hpp \
+    factories.hpp \
     mappers.hpp \
+    menubar_presenter.hpp \
     scene_presenter.hpp \
     toolbar_presenter.hpp
 

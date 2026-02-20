@@ -10,6 +10,8 @@
 #include "view.hpp"
 #include "scene_model.hpp"
 #include "toolbar.hpp"
+#include "menubar.hpp"
+#include "menubar_presenter.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -32,6 +34,8 @@ private:
     SceneView* m_sceneView;
     Toolbar* m_toolbar;
     Context* m_context;
+    MenuBarPresenter* m_menuBarPresenter;
+    MenuBar* m_menuBar;
     View* m_view;
 };
 #endif // MAINWINDOW_H

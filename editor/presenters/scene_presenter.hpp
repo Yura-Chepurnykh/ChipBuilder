@@ -5,6 +5,7 @@
 #include <QDebug>
 #include "layers.hpp"
 #include "scene_view.hpp"
+#include "layer_view.hpp"
 #include "scene_model.hpp"
 #include "commands.hpp"
 #include "layer_model.hpp"
@@ -78,7 +79,10 @@ public slots:
     void handleSceneClick(const QPointF&);
     void handleMouseMove(const QPointF&);
     void handleMouseRelease(const QPointF&);
-    void onSelectedLayer(Layer*);
+    void onSelectedLayer(std::shared_ptr<Layer>);
+
+public slots:
+    void handleMKeyPress();
 
 public:
     Context& m_context;

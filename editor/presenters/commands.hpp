@@ -41,40 +41,40 @@ private:
 class RemoveLayerCommand final : public ICommand
 {
 public:
-    RemoveLayerCommand(std::shared_ptr<AComponent>, std::shared_ptr<LayerView>);
+    RemoveLayerCommand(std::shared_ptr<AComponent>, QGraphicsItem*);
 
     void execute(SceneView&, Context&) override;
     void undo(SceneView&, Context&) override;
 
 private:
     std::shared_ptr<AComponent> m_model;
-    std::shared_ptr<LayerView> m_view;
+    QGraphicsItem* m_view;
 };
 
 class CreateLayerAction final : public IAction
 {
 public:
-    CreateLayerAction(std::shared_ptr<AComponent>, std::shared_ptr<LayerView>);
+    CreateLayerAction(std::shared_ptr<AComponent>, QGraphicsItem*);
 
     void execute(SceneView&, Context&) override;
     void undo(SceneView&, Context&) override;
 
 private:
     std::shared_ptr<AComponent> m_layerModel;
-    std::shared_ptr<LayerView> m_layerView;
+    QGraphicsItem* m_layerView;
 };
 
 class RemoveLayerAction final : public IAction
 {
 public:
-    RemoveLayerAction(std::shared_ptr<Layer>, std::shared_ptr<LayerView>);
+    RemoveLayerAction(std::shared_ptr<Layer>, QGraphicsItem*);
 
     void execute(SceneView&, Context&) override;
     void undo(SceneView&, Context&) override;
 
 private:
     std::shared_ptr<AComponent> m_model;
-    std::shared_ptr<LayerView> m_view;
+    QGraphicsItem* m_view;
 };
 
 class CommandManager

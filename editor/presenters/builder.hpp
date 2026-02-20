@@ -21,7 +21,6 @@ struct IShapeBuilder
 class RectBuilder final : public IShapeBuilder
 {
 public:
-    RectBuilder() = default;
     IShapeBuilder& onPress(const Point& p) override;
     IShapeBuilder& onMove(const Point& p) override;
     IShapeBuilder& onRelease(const Point& p) override;
@@ -37,6 +36,7 @@ class PolygonBuilder final : public IShapeBuilder
 public:
     IShapeBuilder& onPress(const Point& p) override;
     IShapeBuilder& onMove(const Point& p) override;
+    IShapeBuilder& onRelease(const Point& p) override;
     IShapeBuilder& onDouble(const Point& p) override;
     std::unique_ptr<IShape> build() override;
 
