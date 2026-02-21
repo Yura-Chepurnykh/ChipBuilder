@@ -12,7 +12,7 @@
 class ViewFactory
 {
 public:
-    static QGraphicsItem* create(std::unique_ptr<IShape> shape, Style style);
+    static QGraphicsItem* create(IShape* shape, Style style);
 };
 
 #endif // FACTORIES_HPP

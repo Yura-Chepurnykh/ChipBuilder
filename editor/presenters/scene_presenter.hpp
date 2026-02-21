@@ -75,6 +75,9 @@ public:
     void setState(std::unique_ptr<IStrategy>);
     void handle(const QPointF&);
 
+signals:
+    void drawRectPreview();
+
 public slots:
     void handleSceneClick(const QPointF&);
     void handleMouseMove(const QPointF&);
@@ -90,6 +93,7 @@ public:
     std::unique_ptr<IStrategy> m_strategy;
     std::shared_ptr<Layer> m_selectedLayer;
     std::unique_ptr<IShapeBuilder> m_builder;
+    CommandManager m_manager;
 };
 
 #endif // SCENE_PRESENTER_H

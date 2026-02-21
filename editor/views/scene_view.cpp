@@ -39,35 +39,60 @@ void SceneView::keyPressEvent(QKeyEvent* event)
 
 void SceneView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    startPoint = event->scenePos();
-    preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1));
+    fprintf(stderr, "SceneView::mousePressEvent\n");
 
-    emit sceneClick(event->scenePos());
-    event->accept();
+    if (event->isAccepted())
+        return;
+
+    if (m_isDrawRect)
+    {
+        startPoint = event->scenePos();
+        preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1));
+        emit sceneClick(event->scenePos());
+    }
+
+    QGraphicsScene::mousePressEvent(event);
+    // event->accept();
 }
 
 void SceneView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (preview)
+    fprintf(stderr, "SceneView::mouseMoveEvent\n");
+
+    // if (event->isAccepted())
+    //     return;
+
+    if (preview != nullptr & m_isDrawRect)
     {
         QRectF rect(startPoint, event->scenePos());
         rect = rect.normalized();
         preview->setRect(rect);
+        emit sceneMouseMove(event->scenePos());
     }
 
-    emit sceneMouseMove(event->scenePos());
-    event->accept();
+    QGraphicsScene::mouseMoveEvent(event);
+    // event->accept();
 }
 
 void SceneView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (preview)
+    fprintf(stderr, "SceneView::mouseReleaseEvent\n");
+
+    // if (event->isAccepted())
+    //     return;
+
+    if (preview != nullptr & m_isDrawRect)
     {
         removeItem(preview);
         delete preview;
         preview = nullptr;
+        m_isDrawRect = false;
     }
 
     emit sceneMouseRelease(event->scenePos());
+    QGraphicsScene::mouseReleaseEvent(event);
 }
+
+void SceneView::handleDrawRectPreview() { m_isDrawRect = true; }
+
 

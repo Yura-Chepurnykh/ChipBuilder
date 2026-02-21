@@ -1,0 +1,6 @@
+rm -rf build
+mkdir build 
+cd build
+qmake ../views.pro
+make -j$(nproc)
+cd ..

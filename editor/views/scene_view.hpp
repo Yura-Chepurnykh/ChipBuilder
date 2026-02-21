@@ -29,6 +29,7 @@ public:
 
     QGraphicsRectItem* preview = nullptr;
     QPointF startPoint;
+    bool m_isDrawRect;
 
 signals:
     void sceneClick(const QPointF&);
@@ -37,6 +38,9 @@ signals:
 
 signals:
     void MKeyPress();
+
+public slots:
+    void handleDrawRectPreview();
 
 protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;

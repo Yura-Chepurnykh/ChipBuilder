@@ -1,12 +1,12 @@
 #include "factories.hpp"
 
-QGraphicsItem* ViewFactory::create(std::unique_ptr<IShape> shape, Style style)
+QGraphicsItem* ViewFactory::create(IShape* shape, Style style)
 {
-    if (auto r = dynamic_cast<Rect*>(shape.get()); r != nullptr)
+    if (auto r = dynamic_cast<Rect*>(shape); r != nullptr)
     {
         return new LayerView(toQRectF(*r), style);
     }
-    else if (auto m = dynamic_cast<Polygon*>(shape.get()); m != nullptr)
+    else if (auto m = dynamic_cast<Polygon*>(shape); m != nullptr)
     {
         return new MetalView(toQSharedPolygon(*m), style);
     }

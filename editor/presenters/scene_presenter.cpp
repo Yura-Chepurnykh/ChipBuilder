@@ -13,6 +13,7 @@ ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     connect(&m_view, &SceneView::sceneMouseMove, this, &ScenePresenter::handleMouseMove);
     connect(&m_view, &SceneView::sceneMouseRelease, this, &ScenePresenter::handleMouseRelease);
     connect(&m_view, &SceneView::MKeyPress, this, &ScenePresenter::handleMKeyPress);
+    connect(this, &ScenePresenter::drawRectPreview, &m_view, &SceneView::handleDrawRectPreview);
 }
 
 void ScenePresenter::handleMKeyPress()
@@ -47,6 +48,7 @@ void ScenePresenter::onSelectedLayer(std::shared_ptr<Layer> selected)
 {
     m_selectedLayer = selected;
     m_builder = std::make_unique<RectBuilder>();
+    emit drawRectPreview();
 }
 
 PressStrategy::PressStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }
@@ -77,15 +79,16 @@ void ReleaseStrategy::handle(const QPointF& p)
     auto style = StyleModel().getStyle(typeid(*m_presenter.m_selectedLayer));
 
     // create views base on model data
-    auto view = ViewFactory::create(std::move(shape), *style);
+    auto view = ViewFactory::create(shape.get(), *style);
     m_presenter.m_selectedLayer->setShape(std::move(shape));
 
     auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedLayer, view);
     auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedLayer, view);
     auto command = std::make_shared<CreateLayerCommand>(action, undoAction);
 
-    CommandManager manager;
-    manager.execute(command, m_presenter.m_context, m_presenter.m_view);
+    m_presenter.m_manager.execute(command, m_presenter.m_context, m_presenter.m_view);
+
+    m_presenter.m_builder = nullptr;
 }
 
 DoubleClickStrategy::DoubleClickStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }
