@@ -38,6 +38,7 @@ signals:
 
 signals:
     void MKeyPress();
+    void DeleteKeyPress();
 
 public slots:
     void handleDrawRectPreview();

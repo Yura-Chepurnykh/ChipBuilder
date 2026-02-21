@@ -52,32 +52,48 @@ CreateLayerAction::CreateLayerAction(std::shared_ptr<AComponent> layer, QGraphic
 void CreateLayerAction::execute(SceneView& view, Context& context)
 {
     // QGraphicsItem* viewPtr = new LayerView(m_layerView->getRect(), m_layerView->getStyle());
-    context.m_layout.add(m_layerModel);
-    view.addItem(m_layerView);
-    view.update();
+    if (auto layer = dynamic_cast<LayerView*>(m_layerView); layer != nullptr)
+    {
+        context.m_modelToView[m_layerModel->id] = layer->id;
+        context.m_viewToModel[layer->id] = m_layerModel->id;
+        context.m_layout.add(m_layerModel);
+        view.addItem(m_layerView);
+        view.update();
+    }
 }
 
-void CreateLayerAction::undo(SceneView& view, Context& context)
+RemoveLayerCommand::RemoveLayerCommand(std::shared_ptr<IAction> action, std::shared_ptr<IAction> undoAction) :
+    m_action(std::move(action)), m_undoAction(std::move(undoAction)) { }
+
+void RemoveLayerCommand::execute(SceneView& view, Context& context)
 {
-    context.m_layout.remove(m_layerModel->id);
-    view.removeItem(m_layerView);
-    view.update();
+    if (m_action)
+        m_action->execute(view, context);
 }
 
-RemoveLayerAction::RemoveLayerAction(std::shared_ptr<Layer> layer, QGraphicsItem* view) :
-    m_view(view), m_model(layer) { }
+void RemoveLayerCommand::undo(SceneView& view, Context& context)
+{
+    if (m_undoAction)
+        m_undoAction->execute(view, context);
+}
+
+RemoveLayerAction::RemoveLayerAction(std::shared_ptr<Layer> layer) : m_model(layer) { }
 
 void RemoveLayerAction::execute(SceneView& view, Context& context)
 {
     context.m_layout.remove(m_model->id);
-    view.removeItem(m_view);
-    view.update();
-}
 
-void RemoveLayerAction::undo(SceneView& view, Context& context)
-{
-    context.m_layout.add(m_model);
-    view.addItem(m_view);
+    auto id = context.m_modelToView[m_model->id];
+
+    for (auto& item : view.items())
+    {
+        if (auto layer = dynamic_cast<LayerView*>(item); layer != nullptr)
+        {
+            if (layer->id == id)
+                view.removeItem(layer);
+        }
+    }
+
     view.update();
 }
 

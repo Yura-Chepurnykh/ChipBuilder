@@ -16,22 +16,26 @@ void SceneView::drawBackground(QPainter* painter, const QRectF& rect)
     painter->setPen(QPen((QColor("#1c1c1c")), 2));
 
     for (auto left = std::floor(rect.left() / gap) * gap; left < rect.right(); left += gap)
-    {
         painter->drawLine(left, rect.top(), left, rect.bottom());
-    }
 
     for (auto top = std::floor(rect.top() / gap) * gap; top < rect.bottom(); top += gap)
-    {
         painter->drawLine(rect.left(), top, rect.right(), top);
-    }
 }
 
 void SceneView::keyPressEvent(QKeyEvent* event)
 {
     switch(event->key())
     {
-    case Qt::Key_M:
-        emit MKeyPress();
+        case Qt::Key_M:
+        {
+            emit MKeyPress();
+            break;
+        }
+        case Qt::Key_Delete:
+        {
+            emit DeleteKeyPress();
+            break;
+        }
     }
 
     event->accept();

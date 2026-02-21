@@ -7,6 +7,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 INCLUDEPATH += ../editor_models/
 INCLUDEPATH += ../../design_models/include
+INCLUDEPATH += ../../utils/include
 
 CONFIG += c++23 shared debug
 QMAKE_CXXFLAGS_DEBUG += -fPIC

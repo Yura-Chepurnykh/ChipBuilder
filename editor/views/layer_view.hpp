@@ -6,12 +6,16 @@
 #include <QRectF>
 #include <QHash>
 #include <QColor>
+#include <QObject>
 #include <QPainter>
 #include <QLabel>
 #include "layer_model.hpp"
+#include "id_generator.hpp"
 
-class LayerView : public QGraphicsItem
+class LayerView : public QObject, public QGraphicsItem
 {
+    Q_OBJECT
+
 public:
     LayerView(const QRectF&, Style);
 
@@ -25,6 +29,11 @@ public:
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
+signals:
+    void press(int);
+
+public:
+    unsigned int id;
     QPointF m_start;
     bool m_isDrag = false;
     QRectF m_rect;

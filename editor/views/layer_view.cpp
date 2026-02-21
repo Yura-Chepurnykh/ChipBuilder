@@ -1,6 +1,6 @@
 #include "layer_view.hpp"
 
-LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s) { }
+LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s), id(IdGenerator::generate()) { }
 
 QRectF LayerView::boundingRect() const
 {
@@ -23,6 +23,7 @@ void LayerView::mousePressEvent(QGraphicsSceneMouseEvent* event)
     m_isDrag = true;
     m_start = event->pos();
     event->accept();
+    emit press(id);
     //QGraphicsItem::mousePressEvent(event);
 }
 

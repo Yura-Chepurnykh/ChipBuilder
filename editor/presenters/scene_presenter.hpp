@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <QDebug>
+#include <unordered_map>
 #include "layers.hpp"
 #include "scene_view.hpp"
 #include "layer_view.hpp"
@@ -79,6 +80,7 @@ signals:
     void drawRectPreview();
 
 public slots:
+    void handleLayerPress(int);
     void handleSceneClick(const QPointF&);
     void handleMouseMove(const QPointF&);
     void handleMouseRelease(const QPointF&);
@@ -86,6 +88,7 @@ public slots:
 
 public slots:
     void handleMKeyPress();
+    void handleDeleteKeyPress();
 
 public:
     Context& m_context;

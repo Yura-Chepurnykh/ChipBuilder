@@ -14,7 +14,6 @@ class IAction
 public:
     virtual ~IAction() = default;
     virtual void execute(SceneView&, Context&) = 0;
-    virtual void undo(SceneView&, Context&) = 0;
 };
 
 class ICommand
@@ -41,14 +40,14 @@ private:
 class RemoveLayerCommand final : public ICommand
 {
 public:
-    RemoveLayerCommand(std::shared_ptr<AComponent>, QGraphicsItem*);
+    RemoveLayerCommand(std::shared_ptr<IAction>, std::shared_ptr<IAction>);
 
     void execute(SceneView&, Context&) override;
     void undo(SceneView&, Context&) override;
 
 private:
-    std::shared_ptr<AComponent> m_model;
-    QGraphicsItem* m_view;
+    std::shared_ptr<IAction> m_action;
+    std::shared_ptr<IAction> m_undoAction;
 };
 
 class CreateLayerAction final : public IAction
@@ -57,7 +56,6 @@ public:
     CreateLayerAction(std::shared_ptr<AComponent>, QGraphicsItem*);
 
     void execute(SceneView&, Context&) override;
-    void undo(SceneView&, Context&) override;
 
 private:
     std::shared_ptr<AComponent> m_layerModel;
@@ -67,14 +65,12 @@ private:
 class RemoveLayerAction final : public IAction
 {
 public:
-    RemoveLayerAction(std::shared_ptr<Layer>, QGraphicsItem*);
+    RemoveLayerAction(std::shared_ptr<Layer>);
 
     void execute(SceneView&, Context&) override;
-    void undo(SceneView&, Context&) override;
 
 private:
     std::shared_ptr<AComponent> m_model;
-    QGraphicsItem* m_view;
 };
 
 class CommandManager
