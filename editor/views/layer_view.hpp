@@ -29,10 +29,15 @@ public:
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
+    void hoverEnterEvent(QGraphicsSceneHoverEvent*) override;
+    void hoverMoveEvent(QGraphicsSceneHoverEvent*) override;
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent*) override;
+
 signals:
     void press(int);
 
 public:
+    QColor m_baseColor;
     unsigned int id;
     QPointF m_start;
     bool m_isDrag = false;

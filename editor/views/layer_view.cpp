@@ -1,11 +1,14 @@
 #include "layer_view.hpp"
 
-LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s), id(IdGenerator::generate()) { }
-
-QRectF LayerView::boundingRect() const
+LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s), id(IdGenerator::generate())
 {
-    return m_rect;
+    setAcceptHoverEvents(true);
+    setFlag(QGraphicsItem::ItemIsSelectable);
+    setFlag(QGraphicsItem::ItemIsMovable);
+    setFlag(QGraphicsItem::ItemIsFocusable);
 }
+
+QRectF LayerView::boundingRect() const { return m_rect; }
 
 void LayerView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
@@ -20,6 +23,9 @@ void LayerView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 void LayerView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "LayerView::mousePressEvent\n");
+
+    setFocus();
+
     m_isDrag = true;
     m_start = event->pos();
     event->accept();
@@ -45,4 +51,33 @@ void LayerView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     event->accept();
     //QGraphicsItem::mouseReleaseEvent(event);
 }
+
+void LayerView::hoverEnterEvent(QGraphicsSceneHoverEvent* event)
+{
+    fprintf(stderr, "LayerView::hoverEnterEvent");
+    m_baseColor = m_style.background;
+    m_style.background = m_style.background.lighter(130);
+    update();
+    QGraphicsItem::hoverEnterEvent(event);
+}
+
+void LayerView::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
+{
+    fprintf(stderr, "LayerView::hoverMoveEvent");
+    QGraphicsItem::hoverMoveEvent(event);
+}
+
+void LayerView::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+{
+    fprintf(stderr, "LayerView::hoverEnterEvent");
+    m_style.background = m_baseColor;
+    update();
+    QGraphicsItem::hoverLeaveEvent(event);
+}
+
+
+
+
+
+
 
