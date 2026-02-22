@@ -15,6 +15,8 @@ ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     connect(&m_view, &SceneView::MKeyPress, this, &ScenePresenter::handleMKeyPress);
     connect(this, &ScenePresenter::drawRectPreview, &m_view, &SceneView::handleDrawRectPreview);
     connect(&m_view, &SceneView::DeleteKeyPress, this, &ScenePresenter::handleDeleteKeyPress);
+    connect(&m_view, &SceneView::undoPress, this, &ScenePresenter::handleUndoPress);
+    connect(&m_view, &SceneView::redoPress, this, &ScenePresenter::handleRedoPress);
 }
 
 void ScenePresenter::handleDeleteKeyPress()
@@ -133,3 +135,34 @@ void ReleaseStrategy::handle(const QPointF& p)
 DoubleClickStrategy::DoubleClickStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }
 
 void DoubleClickStrategy::handle(const QPointF& p) { }
+
+void ScenePresenter::handleUndoPress()
+{
+    m_manager.undo(m_view, m_context);
+}
+
+void ScenePresenter::handleRedoPress()
+{
+    m_manager.redo(m_view, m_context);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

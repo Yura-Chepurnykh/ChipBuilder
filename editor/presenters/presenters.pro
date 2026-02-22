@@ -25,6 +25,7 @@ SOURCES += \
     context.cpp \
     factories.cpp \
     mappers.cpp \
+    menubar_presenter.cpp \
     scene_presenter.cpp \
     toolbar_presenter.cpp
 

@@ -89,6 +89,8 @@ public slots:
 public slots:
     void handleMKeyPress();
     void handleDeleteKeyPress();
+    void handleUndoPress();
+    void handleRedoPress();
 
 public:
     Context& m_context;
