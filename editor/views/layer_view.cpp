@@ -1,6 +1,6 @@
 #include "layer_view.hpp"
 
-LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s), id(IdGenerator::generate())
+LayerView::LayerView(const QRectF& r, Style s) : id(IdGenerator::generate()), m_rect(r), m_style(s)
 {
     setAcceptHoverEvents(true);
     setFlag(QGraphicsItem::ItemIsSelectable);
@@ -8,7 +8,10 @@ LayerView::LayerView(const QRectF& r, Style s) : m_rect(r), m_style(s), id(IdGen
     setFlag(QGraphicsItem::ItemIsFocusable);
 }
 
-QRectF LayerView::boundingRect() const { return m_rect; }
+QRectF LayerView::boundingRect() const
+{
+    return m_rect;
+}
 
 void LayerView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
@@ -24,6 +27,8 @@ void LayerView::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "LayerView::mousePressEvent\n");
 
+    m_prevPos = scenePos();
+
     setFocus();
 
     if (!m_resizeDirection)
@@ -31,22 +36,21 @@ void LayerView::mousePressEvent(QGraphicsSceneMouseEvent* event)
         m_isDrag = true;
         m_start = event->pos();
     }
+
     event->accept();
     emit press(id);
-    //QGraphicsItem::mousePressEvent(event);
 }
 
 void LayerView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "LayerView::mouseMoveEvent\n");
+
     if (m_isDrag)
     {
         setPos(mapToScene(event->pos() - m_start));
     }
     else
     {
-        fprintf(stderr, "bowie\n");
-
         prepareGeometryChange();
 
         switch (m_resizeDirection)
@@ -102,15 +106,17 @@ void LayerView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         }
     }
     event->accept();
-    //QGraphicsItem::mouseMoveEvent(event);
 }
 
 void LayerView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "LayerView::mouseReleaseEvent\n");
+
+    if (m_isDrag)
+        emit moved(id, m_prevPos, scenePos());
+
     m_isDrag = false;
     event->accept();
-    //QGraphicsItem::mouseReleaseEvent(event);
 }
 
 void LayerView::hoverEnterEvent(QGraphicsSceneHoverEvent* event)

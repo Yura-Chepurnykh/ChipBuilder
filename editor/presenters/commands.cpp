@@ -77,7 +77,7 @@ void RemoveLayerCommand::undo(SceneView& view, Context& context)
         m_undoAction->execute(view, context);
 }
 
-RemoveLayerAction::RemoveLayerAction(std::shared_ptr<Layer> layer) : m_model(layer) { }
+RemoveLayerAction::RemoveLayerAction(std::shared_ptr<AComponent> layer) : m_model(layer) { }
 
 void RemoveLayerAction::execute(SceneView& view, Context& context)
 {
@@ -98,3 +98,55 @@ void RemoveLayerAction::execute(SceneView& view, Context& context)
 }
 
 
+MovedComponentCommand::MovedComponentCommand(std::shared_ptr<IAction> action, std::shared_ptr<IAction> undoAction) :
+    m_action(action), m_undoAction(undoAction)
+{
+
+}
+
+void MovedComponentCommand::execute(SceneView& view, Context& context)
+{
+    m_action->execute(view, context);
+}
+
+void MovedComponentCommand::undo(SceneView& view, Context& context)
+{
+    m_undoAction->execute(view, context);
+}
+
+MovedComponentAction::MovedComponentAction(std::shared_ptr<AComponent> component, const Point& p) : m_componentModel(component), m_toPoint(p) { }
+
+void MovedComponentAction::execute(SceneView& view, Context& context)
+{
+    auto viewId = context.m_modelToView[m_componentModel->id];
+
+    for (const auto& item : view.items())
+    {
+        if (auto layerView = dynamic_cast<LayerView*>(item))
+        {
+            if (layerView->id == viewId)
+                layerView->setPos(toQPointF(m_toPoint));
+        }
+    }
+
+    m_componentModel->move(m_toPoint);
+}
+
+RevertMovedComponentAction::RevertMovedComponentAction(std::shared_ptr<AComponent> component, const Point& p) :
+    m_componentModel(component), m_fromPoint(p) { }
+
+void RevertMovedComponentAction::execute(SceneView& view, Context& context)
+{
+    auto viewId = context.m_modelToView[m_componentModel->id];
+
+    for (const auto& item : view.items())
+    {
+        if (auto layerView = dynamic_cast<LayerView*>(item))
+        {
+            if (layerView->id == viewId)
+                layerView->setPos(toQPointF(m_fromPoint));
+        }
+    }
+
+    m_componentModel->move(m_fromPoint);
+}

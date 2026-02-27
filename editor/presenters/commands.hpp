@@ -8,6 +8,7 @@
 #include "scene_view.hpp"
 #include "layer_view.hpp"
 #include "context.hpp"
+#include "mappers.hpp"
 
 class IAction
 {
@@ -65,7 +66,7 @@ private:
 class RemoveLayerAction final : public IAction
 {
 public:
-    RemoveLayerAction(std::shared_ptr<Layer>);
+    RemoveLayerAction(std::shared_ptr<AComponent>);
 
     void execute(SceneView&, Context&) override;
 
@@ -83,6 +84,40 @@ public:
 private:
     std::stack<std::shared_ptr<ICommand>> m_undoHistory;
     std::stack<std::shared_ptr<ICommand>> m_redoHistory;
+};
+
+class MovedComponentCommand final : public ICommand
+{
+public:
+    MovedComponentCommand(std::shared_ptr<IAction>, std::shared_ptr<IAction>);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::shared_ptr<IAction> m_action;
+    std::shared_ptr<IAction> m_undoAction;
+};
+
+class MovedComponentAction final : public IAction
+{
+public:
+    MovedComponentAction(std::shared_ptr<AComponent>, const Point&);
+    void execute(SceneView&, Context&) override;
+
+private:
+    Point m_toPoint;
+    std::shared_ptr<AComponent> m_componentModel;
+};
+
+class RevertMovedComponentAction final : public IAction
+{
+public:
+    RevertMovedComponentAction(std::shared_ptr<AComponent>, const Point&);
+    void execute(SceneView&, Context&) override;
+
+private:
+    Point m_fromPoint;
+    std::shared_ptr<AComponent> m_componentModel;
 };
 
 #endif // COMMANDS_HPP

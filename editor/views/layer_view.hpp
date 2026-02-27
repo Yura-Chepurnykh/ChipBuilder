@@ -31,9 +31,6 @@ public:
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
-    QRectF getRect() const { return m_rect; }
-    Style getStyle() const { return m_style; }
-
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
@@ -44,14 +41,15 @@ public:
 
 signals:
     void press(int);
+    void moved(int, const QPointF&, const QPointF&);
 
 public:
-    QColor m_baseColor;
-    unsigned int id;
-    QPointF m_start;
+    int id;
     bool m_isDrag = false;
-    QRectF m_rect;
     int m_resizeDirection = 0;
+    QPointF m_start, m_prevPos;
+    QRectF m_rect;
+    QColor m_baseColor;
     Style m_style;
 };
 

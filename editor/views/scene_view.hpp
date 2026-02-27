@@ -37,8 +37,10 @@ signals:
     void sceneMouseRelease(const QPointF&);
 
 signals:
-    void MKeyPress();
-    void DeleteKeyPress();
+    void mKeyPress();
+    void deleteKeyPress();
+    void undoPress();
+    void redoPress();
 
 public slots:
     void handleDrawRectPreview();

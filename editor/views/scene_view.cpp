@@ -28,12 +28,22 @@ void SceneView::keyPressEvent(QKeyEvent* event)
     {
         case Qt::Key_M:
         {
-            emit MKeyPress();
+            emit mKeyPress();
             break;
         }
         case Qt::Key_Delete:
         {
-            emit DeleteKeyPress();
+            emit deleteKeyPress();
+            break;
+        }
+        case Qt::Key_Z:
+        {
+            emit undoPress();
+            break;
+        }
+        case Qt::Key_X:
+        {
+            emit redoPress();
             break;
         }
     }

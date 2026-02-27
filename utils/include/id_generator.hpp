@@ -12,7 +12,7 @@ public:
     }
 
 private:
-    static constinit unsigned int m_id = 0;
+    inline static unsigned int m_id = 0;
 };
 
 #endif // ID_GENERATOR_HPP

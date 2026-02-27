@@ -86,6 +86,8 @@ public slots:
     void handleMouseRelease(const QPointF&);
     void onSelectedLayer(std::shared_ptr<Layer>);
 
+    void handleMoved(int, const QPointF&, const QPointF&);
+
 public slots:
     void handleMKeyPress();
     void handleDeleteKeyPress();
@@ -96,7 +98,7 @@ public:
     Context& m_context;
     SceneView& m_view;
     std::unique_ptr<IStrategy> m_strategy;
-    std::shared_ptr<Layer> m_selectedLayer;
+    std::shared_ptr<AComponent> m_selectedComponent;
     std::unique_ptr<IShapeBuilder> m_builder;
     CommandManager m_manager;
 };

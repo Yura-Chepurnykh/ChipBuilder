@@ -23,7 +23,10 @@ public:
     
     // meta-information
     virtual std::string name() const = 0;
+    virtual IShape* getShape() = 0;
+    virtual void setShape(std::unique_ptr<IShape>) = 0;
     virtual void move(int dx, int dy) = 0;
+    virtual void move(const Point&) = 0;
     virtual void accept(IVisitor& visitor) = 0;
 
     unsigned int id;
@@ -63,6 +66,12 @@ public:
             c->move(dx, dy);
     }
 
+    void move(const Point& point) override
+    {
+        for (const auto& c : m_components)
+            c->move(point);
+    }
+
     void accept(IVisitor& visitor) override
     {
         for (const auto& c : m_components)
@@ -75,6 +84,9 @@ public:
             }
         }
     } 
+    
+    IShape* getShape() override { }
+    void setShape(std::unique_ptr<IShape>) override { }
 
 // private:
     // we use unique_ptr to avoid slicing
@@ -85,13 +97,19 @@ struct Layer : public AComponent
 {
 public:
     virtual ~Layer() { }
+    
     void move(int dx, int dy) override
     {
         m_shape->move(dx, dy);
     }
 
-    void setShape(std::unique_ptr<IShape> s) noexcept { m_shape = std::move(s); }
-    IShape* getShape() const noexcept { return m_shape.get(); }
+    void move(const Point& point) override
+    {
+        m_shape->move(point);
+    }
+
+    void setShape(std::unique_ptr<IShape> s) override { m_shape = std::move(s); }
+    IShape* getShape() { return m_shape.get(); }
 
 // protected:
     Layer(unsigned int id, std::unique_ptr<IShape> shape) noexcept : 

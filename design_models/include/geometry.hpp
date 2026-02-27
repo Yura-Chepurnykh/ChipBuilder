@@ -27,6 +27,7 @@ struct IShape
     unsigned int id; 
     virtual ~IShape() = default;
     virtual void move(int dx, int dy) = 0;
+    virtual void move(const Point&) = 0;
     virtual void accept(IVisitor&) = 0;
 };
 
@@ -40,6 +41,15 @@ struct Polygon final : public IShape
         {
             p.x += dx;
             p.y += dy;
+        }
+    }
+
+    void move(const Point& point) override
+    {
+        for (auto& p : m_points)
+        {
+            p.x = point.x;
+            p.y = point.y;
         }
     }
 
@@ -73,6 +83,12 @@ struct Rect final : public IShape
     {
         point.x += dx;
         point.y += dy;
+    }
+
+    void move(const Point& p) override
+    {
+        point.x = p.x;
+        point.y = p.y;
     }
 
     void accept(IVisitor&) override;

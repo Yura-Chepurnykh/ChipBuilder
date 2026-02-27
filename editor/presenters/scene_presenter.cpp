@@ -6,33 +6,33 @@ ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     m_context(context),
     m_view(view),
     m_strategy(nullptr),
-    m_selectedLayer(nullptr),
+    m_selectedComponent(nullptr),
     m_builder(nullptr)
 {
     connect(&m_view, &SceneView::sceneClick, this, &ScenePresenter::handleSceneClick);
     connect(&m_view, &SceneView::sceneMouseMove, this, &ScenePresenter::handleMouseMove);
     connect(&m_view, &SceneView::sceneMouseRelease, this, &ScenePresenter::handleMouseRelease);
-    connect(&m_view, &SceneView::MKeyPress, this, &ScenePresenter::handleMKeyPress);
-    connect(this, &ScenePresenter::drawRectPreview, &m_view, &SceneView::handleDrawRectPreview);
-    connect(&m_view, &SceneView::DeleteKeyPress, this, &ScenePresenter::handleDeleteKeyPress);
+    connect(&m_view, &SceneView::mKeyPress, this, &ScenePresenter::handleMKeyPress);
+    connect(this,    &ScenePresenter::drawRectPreview, &m_view, &SceneView::handleDrawRectPreview);
+    connect(&m_view, &SceneView::deleteKeyPress, this, &ScenePresenter::handleDeleteKeyPress);
     connect(&m_view, &SceneView::undoPress, this, &ScenePresenter::handleUndoPress);
     connect(&m_view, &SceneView::redoPress, this, &ScenePresenter::handleRedoPress);
 }
 
 void ScenePresenter::handleDeleteKeyPress()
 {
-    if (m_selectedLayer)
+    if (m_selectedComponent)
     {
         fprintf(stderr, "ScenePresenter::handleDeleteKeyPress");
 
-        if (!StyleModel().getStyle(typeid(*m_selectedLayer)).has_value())
+        if (!StyleModel().getStyle(typeid(*m_selectedComponent)).has_value())
         {
             fprintf(stderr, "optional is empty");
         }
 
-        auto view = ViewFactory::create(m_selectedLayer->getShape(), *StyleModel().getStyle(typeid(*m_selectedLayer)));
-        auto action = std::make_shared<RemoveLayerAction>(m_selectedLayer);
-        auto undo = std::make_shared<CreateLayerAction>(m_selectedLayer, view);
+        auto view = ViewFactory::create(m_selectedComponent->getShape(), *StyleModel().getStyle(typeid(*m_selectedComponent)));
+        auto action = std::make_shared<RemoveLayerAction>(m_selectedComponent);
+        auto undo = std::make_shared<CreateLayerAction>(m_selectedComponent, view);
         auto command = std::make_shared<RemoveLayerCommand>(action, undo);
         m_manager.execute(command, m_context, m_view);
     }
@@ -40,7 +40,7 @@ void ScenePresenter::handleDeleteKeyPress()
 
 void ScenePresenter::handleMKeyPress()
 {
-    m_selectedLayer = std::make_unique<Metal<1>>(IdGenerator::generate(), nullptr);
+    m_selectedComponent = std::make_unique<Metal<1>>(IdGenerator::generate(), nullptr);
     m_builder = std::make_unique<PolygonBuilder>();
 }
 
@@ -74,13 +74,13 @@ void ScenePresenter::handleLayerPress(int id)
     }); it != m_context.m_layout.m_components.end())
     {
         if (auto l = dynamic_pointer_cast<Layer>(*it))
-            m_selectedLayer = l;
+            m_selectedComponent = l;
     }
 }
 
 void ScenePresenter::onSelectedLayer(std::shared_ptr<Layer> selected)
 {
-    m_selectedLayer = selected;
+    m_selectedComponent = selected;
     m_builder = std::make_unique<RectBuilder>();
     emit drawRectPreview();
 }
@@ -110,7 +110,7 @@ void ReleaseStrategy::handle(const QPointF& p)
 
     // create shape via builder
     auto shape = m_presenter.m_builder->onRelease(toPoint(p)).build();
-    auto style = StyleModel().getStyle(typeid(*m_presenter.m_selectedLayer));
+    auto style = StyleModel().getStyle(typeid(*m_presenter.m_selectedComponent));
 
     if (!style.has_value())
     {
@@ -119,16 +119,19 @@ void ReleaseStrategy::handle(const QPointF& p)
 
     // create views base on model data
     auto view = ViewFactory::create(shape.get(), *style);
-    m_presenter.m_selectedLayer->setShape(std::move(shape));
+    m_presenter.m_selectedComponent->setShape(std::move(shape));
 
-    auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedLayer, view);
-    auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedLayer);
+    auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedComponent, view);
+    auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedComponent);
     auto command = std::make_shared<CreateLayerCommand>(action, undoAction);
 
     m_presenter.m_manager.execute(command, m_presenter.m_context, m_presenter.m_view);
 
     if (auto layerView = dynamic_cast<LayerView*>(view))
+    {
         QObject::connect(layerView, &LayerView::press, &m_presenter, &ScenePresenter::handleLayerPress);
+        QObject::connect(layerView, &LayerView::moved, &m_presenter, &ScenePresenter::handleMoved);
+    }
     m_presenter.m_builder = nullptr;
 }
 
@@ -146,10 +149,25 @@ void ScenePresenter::handleRedoPress()
     m_manager.redo(m_view, m_context);
 }
 
+void ScenePresenter::handleMoved(int id, const QPointF& prev, const QPointF& curr)
+{
+    auto modelId = m_context.m_viewToModel[id];
 
+    for (const auto& component : m_context.m_layout.m_components)
+    {
+        if (auto layer = dynamic_cast<Layer*>(component.get()))
+        {
+            if (layer->id == modelId)
+                m_selectedComponent = component;
+        }
+    }
 
+    auto action = std::make_shared<MovedComponentAction>(m_selectedComponent, toPoint(curr));
+    auto undoAction = std::make_shared<MovedComponentAction>(m_selectedComponent, toPoint(prev));
+    auto command = std::make_shared<MovedComponentCommand>(action, undoAction);
 
-
+    m_manager.execute(command, m_context, m_view);
+}
 
 
 
