@@ -52,6 +52,7 @@ IShapeBuilder& PolygonBuilder::onRelease(const Point& p)
 
 IShapeBuilder& PolygonBuilder::onMove(const Point& p)
 {
+    fprintf(stderr, "PolygonBuilder::onMove");
     m_polygon.m_points.back() = p;
     return *this;
 }

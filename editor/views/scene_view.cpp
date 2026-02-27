@@ -62,8 +62,9 @@ void SceneView::mousePressEvent(QGraphicsSceneMouseEvent* event)
     {
         startPoint = event->scenePos();
         preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1));
-        emit sceneClick(event->scenePos());
     }
+
+    emit sceneClick(event->scenePos());
 
     QGraphicsScene::mousePressEvent(event);
     // event->accept();
@@ -81,9 +82,9 @@ void SceneView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         QRectF rect(startPoint, event->scenePos());
         rect = rect.normalized();
         preview->setRect(rect);
-        emit sceneMouseMove(event->scenePos());
     }
 
+    emit sceneMouseMove(event->scenePos());
     QGraphicsScene::mouseMoveEvent(event);
     // event->accept();
 }

@@ -1,6 +1,7 @@
 #include "metal_view.hpp"
+#include "id_generator.hpp"
 
-MetalView::MetalView(QSharedPolygon p, Style s) : m_path(p), m_style(s)
+MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m_path(p), m_style(s)
 {
     m_style.pen.setColor(Qt::magenta);
     m_style.pen.setWidth(50);
@@ -18,7 +19,7 @@ QPainterPath MetalView::shape() const
 {
     QPainterPath path;
 
-    if (path.isEmpty()) return path;
+    if (m_path.isEmpty()) return path;
 
     path.moveTo(*m_path[0]);
 

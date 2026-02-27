@@ -20,6 +20,8 @@ public:
     MetalView(QSharedPolygon, Style);
     ~MetalView() = default;
 
+    int id;
+
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
     QRectF boundingRect() const override;

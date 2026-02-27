@@ -60,6 +60,14 @@ void CreateLayerAction::execute(SceneView& view, Context& context)
         view.addItem(m_layerView);
         view.update();
     }
+    if (auto layer = dynamic_cast<MetalView*>(m_layerView); layer != nullptr)
+    {
+        context.m_modelToView[m_layerModel->id] = layer->id;
+        context.m_viewToModel[layer->id] = m_layerModel->id;
+        context.m_layout.add(m_layerModel);
+        view.addItem(m_layerView);
+        view.update();
+    }
 }
 
 RemoveLayerCommand::RemoveLayerCommand(std::shared_ptr<IAction> action, std::shared_ptr<IAction> undoAction) :
@@ -88,6 +96,15 @@ void RemoveLayerAction::execute(SceneView& view, Context& context)
     for (auto& item : view.items())
     {
         if (auto layer = dynamic_cast<LayerView*>(item); layer != nullptr)
+        {
+            if (layer->id == id)
+                view.removeItem(layer);
+        }
+    }
+
+    for (auto& item : view.items())
+    {
+        if (auto layer = dynamic_cast<MetalView*>(item); layer != nullptr)
         {
             if (layer->id == id)
                 view.removeItem(layer);
