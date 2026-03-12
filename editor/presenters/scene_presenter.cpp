@@ -1,10 +1,12 @@
 #include "scene_presenter.hpp"
 #include "mappers.hpp"
 #include "factories.hpp"
+#include "view.hpp"
 
-ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
+ScenePresenter::ScenePresenter(Context& context, SceneView& view, View* viewWidget) noexcept :
     m_context(context),
     m_view(view),
+    m_viewWidget(viewWidget),
     m_strategy(nullptr),
     m_selectedComponent(nullptr),
     m_builder(nullptr)
@@ -141,11 +143,13 @@ void DoubleClickStrategy::handle(const QPointF& p) { }
 
 void ScenePresenter::handleUndoPress()
 {
+    fprintf(stderr, "ScenePresenter::handleUndoPress\n");
     m_manager.undo(m_view, m_context);
 }
 
 void ScenePresenter::handleRedoPress()
 {
+    fprintf(stderr, "ScenePresenter::handleRedoPress\n");   
     m_manager.redo(m_view, m_context);
 }
 
@@ -167,6 +171,16 @@ void ScenePresenter::handleMoved(int id, const QPointF& prev, const QPointF& cur
     auto command = std::make_shared<MovedComponentCommand>(action, undoAction);
 
     m_manager.execute(command, m_context, m_view);
+}
+
+void ScenePresenter::handleZoomIn()
+{
+    if (m_viewWidget) m_viewWidget->scale(1.2, 1.2);
+}
+
+void ScenePresenter::handleZoomOut()
+{
+    if (m_viewWidget) m_viewWidget->scale(1.0 / 1.2, 1.0 / 1.2);
 }
 
 

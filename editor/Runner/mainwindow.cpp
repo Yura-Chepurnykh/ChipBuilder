@@ -11,8 +11,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->setMenuBar(m_menuBar);
 
-    m_menuBarPresenter = new MenuBarPresenter(*m_context, *m_menuBar);
-
     m_sceneView = new SceneView();
     m_toolbar = new Toolbar();
 
@@ -24,8 +22,15 @@ MainWindow::MainWindow(QWidget *parent)
     m_view = new View(m_sceneView);
     m_view->setScene(m_sceneView);
 
-    m_scenePresenter = new ScenePresenter(*m_context, *m_sceneView);
+    m_scenePresenter = new ScenePresenter(*m_context, *m_sceneView, m_view);
     m_toolbarPresenter = new ToolbarPresenter(m_toolbar);
+
+    m_menuBarPresenter = new MenuBarPresenter(*m_context, *m_menuBar);
+
+    connect(m_menuBar->m_editMenu->m_undo, &QAction::triggered, m_scenePresenter, &ScenePresenter::handleUndoPress);
+    connect(m_menuBar->m_editMenu->m_redo, &QAction::triggered, m_scenePresenter, &ScenePresenter::handleRedoPress);
+    connect(m_menuBar->m_editMenu->m_zoomIn, &QAction::triggered, m_scenePresenter, &ScenePresenter::handleZoomIn);
+    connect(m_menuBar->m_editMenu->m_zoomOut, &QAction::triggered, m_scenePresenter, &ScenePresenter::handleZoomOut);
 
     connect(m_toolbarPresenter, &ToolbarPresenter::selectedLayer, m_scenePresenter, &ScenePresenter::onSelectedLayer);
 

@@ -17,9 +17,11 @@ public:
 public slots:
     void handleSave();
     void handleSaveAs();
+    void handleOpen();
 
 private:
     void saveToFile(const std::string& currentPath);
+    void openFromFile(const std::string& path);
 
 private:
     std::string m_currentPath;

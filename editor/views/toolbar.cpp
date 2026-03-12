@@ -1,19 +1,23 @@
 #include "toolbar.hpp"
 
-Toolbar::Toolbar()
+QAction* Toolbar::createAction(const QString& title, const QString& iconPath)
 {
-    m_nSubstrate = createAction("N-Substrate");
-    m_pSubstrate = createAction("P-Substrate");
-    m_nDiffusion = createAction("N-Diffusion");
-    m_pDiffusion = createAction("P-Diffusion");
-    m_oxide = createAction("Oxide");
-    m_polysilicon = createAction("N-Polysilicon");
-}
-
-// pattern fabric method
-QAction* Toolbar::createAction(const QString& title)
-{
-    QAction* action = new QAction(title, this);
+    QAction* action;
+    if (!iconPath.isEmpty()) {
+        action = new QAction(QIcon(iconPath), title, this);
+    } else {
+        action = new QAction(title, this);
+    }
     this->addAction(action);
     return action;
+}
+
+Toolbar::Toolbar()
+{
+    m_nSubstrate = createAction("N-Substrate", ":/icons/n_substrate.png");
+    m_pSubstrate = createAction("P-Substrate", ":/icons/p_substrate.png");
+    m_nDiffusion = createAction("N-Diffusion", ":/icons/n_diffusion.png");
+    m_pDiffusion = createAction("P-Diffusion", ":/icons/p_diffusion.png");
+    m_oxide = createAction("Oxide", ":/icons/oxide.png");
+    m_polysilicon = createAction("N-Polysilicon", ":/icons/polysilicon.png");
 }

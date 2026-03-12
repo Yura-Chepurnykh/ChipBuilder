@@ -27,16 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_toolBar->m_oxide, &QAction::triggered, m_scene, &Scene::oxideCreate);
     connect(m_toolBar->m_polysilicon, &QAction::triggered, m_scene, &Scene::polysiliconCreate);
 
-    Metal* metal = new Metal;
-
-
-    m_scene->addItem(metal);
-
-    metal->add(std::make_shared<QPointF>(10, 10));
-    metal->add(std::make_shared<QPointF>(20, 10));
-
-    metal->add(std::make_shared<QPointF>(30, 30));
-    metal->add(std::make_shared<QPointF>(15, 40));
+    connect(m_toolbar->, &QAction::triggered, m_scene, &Scene::erase);
 }
 
 MainWindow::~MainWindow()

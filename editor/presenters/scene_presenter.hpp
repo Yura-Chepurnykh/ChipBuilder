@@ -13,6 +13,7 @@
 #include "builder.hpp"
 #include "id_generator.hpp"
 #include <QObject>
+#include "view.hpp"
 
 class ScenePresenter;
 
@@ -72,7 +73,7 @@ class ScenePresenter : public QObject
     Q_OBJECT
 
 public:
-    ScenePresenter(Context&, SceneView&) noexcept;
+    ScenePresenter(Context&, SceneView&, View*) noexcept;
     void setState(std::unique_ptr<IStrategy>);
     void handle(const QPointF&);
 
@@ -93,10 +94,13 @@ public slots:
     void handleDeleteKeyPress();
     void handleUndoPress();
     void handleRedoPress();
+    void handleZoomIn();
+    void handleZoomOut();
 
 public:
     Context& m_context;
     SceneView& m_view;
+    View* m_viewWidget;
     std::unique_ptr<IStrategy> m_strategy;
     std::shared_ptr<AComponent> m_selectedComponent;
     std::unique_ptr<IShapeBuilder> m_builder;

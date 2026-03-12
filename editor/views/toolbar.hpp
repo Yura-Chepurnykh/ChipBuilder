@@ -12,7 +12,7 @@ class Toolbar : public QToolBar
 public:
     Toolbar();
 
-    QAction* createAction(const QString&);
+    QAction* createAction(const QString& title, const QString& iconPath = QString());
 
     QAction* m_nSubstrate;
     QAction* m_pSubstrate;
