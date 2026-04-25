@@ -14,12 +14,13 @@ public:
 
     QAction* createAction(const QString&);
 
-    QAction* m_nSubstrate;
-    QAction* m_pSubstrate;
-    QAction* m_nDiffusion;
-    QAction* m_pDiffusion;
-    QAction* m_oxide;
-    QAction* m_polysilicon;
+    QAction* m_active;
+    QAction* m_poly;
+    QAction* m_nwell;
+    QAction* m_pwell;
+    QAction* m_metal1;
+    QAction* m_via;
+    QAction* m_contact;
 };
 
 #endif // TOOLBAR_HPP

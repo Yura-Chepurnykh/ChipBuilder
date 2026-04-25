@@ -74,6 +74,56 @@ private:
     std::shared_ptr<AComponent> m_model;
 };
 
+class RemoveGroupCommand final : public ICommand
+{
+public:
+    RemoveGroupCommand(std::vector<std::shared_ptr<IAction>> actions, std::vector<std::shared_ptr<IAction>> undoActions);
+
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::vector<std::shared_ptr<IAction>> m_actions;
+    std::vector<std::shared_ptr<IAction>> m_undoActions;
+};
+
+class GroupCommand final : public ICommand
+{
+public:
+    GroupCommand(std::shared_ptr<CircuitLayout> group, std::vector<std::shared_ptr<AComponent>> components);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::shared_ptr<CircuitLayout> m_group;
+    std::vector<std::shared_ptr<AComponent>> m_components;
+};
+
+// class MergeCommand final : public ICommand
+// {
+// public:
+//     MergeCommand(std::shared_ptr<AComponent> merged, std::vector<std::shared_ptr<AComponent>> originals);
+//     void execute(SceneView&, Context&) override;
+//     void undo(SceneView&, Context&) override;
+
+// private:
+//     std::shared_ptr<AComponent> m_merged;
+//     std::vector<std::shared_ptr<AComponent>> m_originals;
+//     std::vector<int> m_viewIds;
+// };
+
+class UngroupCommand final : public ICommand
+{
+public:
+    UngroupCommand(std::shared_ptr<CircuitLayout> group);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::shared_ptr<CircuitLayout> m_group;
+    std::vector<std::shared_ptr<AComponent>> m_components;
+};
+
 class CommandManager
 {
 public:
@@ -117,6 +167,29 @@ public:
 
 private:
     Point m_fromPoint;
+    std::shared_ptr<AComponent> m_componentModel;
+};
+
+class ResizedComponentCommand final : public ICommand
+{
+public:
+    ResizedComponentCommand(std::shared_ptr<IAction>, std::shared_ptr<IAction>);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::shared_ptr<IAction> m_action;
+    std::shared_ptr<IAction> m_undoAction;
+};
+
+class ResizedComponentAction final : public IAction
+{
+public:
+    ResizedComponentAction(std::shared_ptr<AComponent>, const QRectF&);
+    void execute(SceneView&, Context&) override;
+
+private:
+    QRectF m_toRect;
     std::shared_ptr<AComponent> m_componentModel;
 };
 

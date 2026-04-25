@@ -27,12 +27,13 @@ public:
     virtual void setShape(std::unique_ptr<IShape>) = 0;
     virtual void move(int dx, int dy) = 0;
     virtual void move(const Point&) = 0;
-    virtual void accept(IVisitor& visitor) = 0;
+    virtual void accept(struct IVisitor& visitor) = 0;
 
     unsigned int id;
+    int zLevel = 0;
 
 protected:
-    AComponent(unsigned int id) : id(id) { }
+    AComponent(unsigned int id, int zLevel = 0) : id(id), zLevel(zLevel) { }
 };
 
 class CircuitLayout final : public AComponent 
@@ -40,8 +41,8 @@ class CircuitLayout final : public AComponent
 public:
     CircuitLayout() = default;
 
-    CircuitLayout(unsigned int id, std::vector<std::shared_ptr<AComponent>> components) :
-        AComponent(id), m_components(std::move(components)) { }
+    CircuitLayout(unsigned int id, int zLevel = 0, std::vector<std::shared_ptr<AComponent>> components = {}) :
+        AComponent(id, zLevel), m_components(std::move(components)) { }
 
     std::string name() const override { return "circuit layout"; }
 
@@ -72,20 +73,9 @@ public:
             c->move(point);
     }
 
-    void accept(IVisitor& visitor) override
-    {
-        for (const auto& c : m_components)
-        {
-            if (c != nullptr)
-            {
-                std::cout << c->name();
-                std::cout.flush();
-                c->accept(visitor);
-            }
-        }
-    } 
+    void accept(IVisitor& visitor) override;
     
-    IShape* getShape() override { }
+    IShape* getShape() override { return nullptr; }
     void setShape(std::unique_ptr<IShape>) override { }
 
 // private:
@@ -100,20 +90,20 @@ public:
     
     void move(int dx, int dy) override
     {
-        m_shape->move(dx, dy);
+        if (m_shape) m_shape->move(dx, dy);
     }
 
     void move(const Point& point) override
     {
-        m_shape->move(point);
+        if (m_shape) m_shape->move(point);
     }
 
     void setShape(std::unique_ptr<IShape> s) override { m_shape = std::move(s); }
-    IShape* getShape() { return m_shape.get(); }
+    IShape* getShape() override { return m_shape.get(); }
 
 // protected:
-    Layer(unsigned int id, std::unique_ptr<IShape> shape) noexcept : 
-        AComponent(id), m_shape(std::move(shape)) { }
+    Layer(unsigned int id, int zLevel = 0, std::unique_ptr<IShape> shape = nullptr) noexcept : 
+        AComponent(id, zLevel), m_shape(std::move(shape)) { }
 
 private:
     std::unique_ptr<IShape> m_shape;
@@ -125,167 +115,70 @@ class CRTP : public Base
 public:
     using Base::Base;
 
-    void accept(IVisitor& visitor)
-    {
-        visitor.visit(static_cast<Derived&>(*this));
-    }
+    void accept(IVisitor& visitor) override;
 };
 
-template<SemiconductorType Type>
-class Substrate final : public CRTP<Substrate<Type>> 
-{
-public:
-    using CRTP<Substrate<Type>>::CRTP;
+class Active final : public CRTP<Active> { public: using CRTP<Active>::CRTP; std::string name() const override { return "active"; } };
+class Poly final : public CRTP<Poly> { public: using CRTP<Poly>::CRTP; std::string name() const override { return "poly"; } };
+class NWell final : public CRTP<NWell> { public: using CRTP<NWell>::CRTP; std::string name() const override { return "nwell"; } };
+class PWell final : public CRTP<PWell> { public: using CRTP<PWell>::CRTP; std::string name() const override { return "pwell"; } };
+class Metal1 final : public CRTP<Metal1> { public: using CRTP<Metal1>::CRTP; std::string name() const override { return "metal1"; } };
+class Via final : public CRTP<Via> { public: using CRTP<Via>::CRTP; std::string name() const override { return "via"; } };
+class Contact final : public CRTP<Contact> { public: using CRTP<Contact>::CRTP; std::string name() const override { return "contact"; } };
 
-    std::string name() const override 
-    {
-        if (std::is_same_v<Type, NType>)
-            return "Ntype Substrate";
-        else if (std::is_same_v<Type, PType>)
-            return "Ptype Substrate";
-        
-        throw std::runtime_error("Invalid Substrate");
-    }
-};
-
-template<SemiconductorType Type>
-class Diffusion final : public CRTP<Diffusion<Type>>
-{
-public:
-    using CRTP<Diffusion<Type>>::CRTP;
-
-    std::string name() const override 
-    {
-        if (std::is_same_v<Type, NType>)
-            return "Ntype Diffusion";
-        return "Ptype Diffusion";
-    }
-};
-
-template<size_t N>
-class Metal final : public CRTP<Metal<N>>
-{
-public:
-    using CRTP<Metal<N>>::CRTP;
-
-    void addToBack(Point point) 
-    {
-        m_path->m_points.push_back(point);
-    }
-
-    void removeFromRear()
-    {
-        m_path->m_points.pop_back();
-    }
-
-    void removeById(size_t id)
-    {
-        if (auto it = std::ranges::find_if(m_path, [&](Point node){
-            return node.id == id;
-        }); it != m_path->m_points.end())
-        {
-            m_path->m_points.erase(it);
-        }
-    }
-
-    int getGap() const noexcept { return m_gap; }
-    void setGap(int g) { m_gap = g; }
-
-    std::string name() const override { return "metal"; }
-
-private:
-    int m_gap;  
-    std::unique_ptr<Polygon> m_path;
-};
-
-template<size_t N, size_t M>
-class Via final : public CRTP<Layer>
-{
-public:
-    using CRTP<Via<N, M>>::CRTP;
-
-    std::string name() const override { return "via"; }
-};
-
-class PolySilicon final : public CRTP<PolySilicon>
-{
-public:
-    using CRTP<PolySilicon>::CRTP;
-
-    std::string name() const override { return "polysilicon"; }
-};
-
-class Oxide final : public CRTP<Oxide>
-{
-public:
-    using CRTP<Oxide>::CRTP;
-
-    std::string name() const override { return "oxide"; }
-};
-
-// pattern Visitor
+// Pattern Visitor
 struct IVisitor
 {
-    virtual void visit(const Substrate<NType>&) = 0;
-    virtual void visit(const Substrate<PType>&) = 0;
-    virtual void visit(const Diffusion<NType>&) = 0;
-    virtual void visit(const Diffusion<PType>&) = 0;
-    virtual void visit(const Oxide&)            = 0;
-    virtual void visit(const PolySilicon&)      = 0;
-    virtual void visit(const Metal<1>&)         = 0;
+    virtual void visit(const Active&)  = 0;
+    virtual void visit(const Poly&)    = 0;
+    virtual void visit(const NWell&)   = 0;
+    virtual void visit(const PWell&)   = 0;
+    virtual void visit(const Metal1&)  = 0;
+    virtual void visit(const Via&)     = 0;
+    virtual void visit(const Contact&) = 0;
+    
     virtual void visit(const Rect& r)           = 0;
-    virtual void visit(const Polygon& r)        = 0;
+    virtual void visit(const PolygonShape& p)    = 0;
 
     virtual ~IVisitor() = default;
 };
 
+inline void CircuitLayout::accept(IVisitor& visitor)
+{
+    for (const auto& c : m_components)
+        if (c != nullptr) c->accept(visitor);
+}
+
 class JSONSerializer final : public IVisitor
 {
 public:
-    void serialize(unsigned int id, const std::string& name)
+    void serialize(const AComponent& component)
     {
         JSON json {
-            { "id",       id   },
-            { "name",     name },
+            { "id",       component.id   },
+            { "zLevel",   component.zLevel },
+            { "name",     component.name() },
         };
 
+        if (auto shape = const_cast<AComponent&>(component).getShape())
+        {
+            JSONSerializer shapeSerializer;
+            shape->accept(shapeSerializer);
+            if (!shapeSerializer.getJson().empty())
+            {
+                json["shape"] = shapeSerializer.getJson().at(0);
+            }
+        }
         m_json.push_back(json);
     }
 
-    void visit(const Substrate<NType>& nSubstrate) override
-    {
-        serialize(nSubstrate.id, nSubstrate.name());
-    }
-
-    void visit(const Substrate<PType>& pSubstrate) override
-    {
-        serialize(pSubstrate.id, pSubstrate.name());
-    }
-
-    void visit(const Diffusion<NType>& nDiffusion) override
-    {
-        serialize(nDiffusion.id, nDiffusion.name());
-    }
-
-    void visit(const Diffusion<PType>& pDiffusion) override 
-    {
-        serialize(pDiffusion.id, pDiffusion.name());
-    }
-
-    void visit(const Oxide& oxide) override 
-    {
-        serialize(oxide.id, oxide.name());
-    }
-
-    void visit(const PolySilicon& polysilicon) override
-    {
-        serialize(polysilicon.id, polysilicon.name());
-    }
-
-    void visit(const Metal<1>& metal) override
-    {
-        serialize(metal.id, metal.name());
-    }
+    void visit(const Active& active) override { serialize(active); }
+    void visit(const Poly& poly) override { serialize(poly); }
+    void visit(const NWell& nwell) override { serialize(nwell); }
+    void visit(const PWell& pwell) override { serialize(pwell); }
+    void visit(const Metal1& metal1) override { serialize(metal1); }
+    void visit(const Via& via) override { serialize(via); }
+    void visit(const Contact& contact) override { serialize(contact); }
 
     void visit(const Rect& r) override
     {
@@ -297,25 +190,19 @@ public:
             { "width",    r.width    },
             { "height",   r.height   }
         };
-
         m_json.push_back(rectJson);
     }
 
-    void visit(const Polygon& polygon) override
+    void visit(const PolygonShape& polygon) override
     {
         JSON polygonJson {
             { "id",       polygon.id   },
             { "geometry", "polygon"    },
-            { "points",   polygonJson.array() }
+            { "points",   JSON::array() }
         };
 
         for (const auto& p : polygon.m_points)
-        {
-            polygonJson["points"].push_back({
-                { "x", p.x },
-                { "y", p.y }
-            });
-        }
+            polygonJson["points"].push_back({ { "x", p.x }, { "y", p.y } });
 
         m_json.push_back(polygonJson);
     }
@@ -326,14 +213,81 @@ private:
     JSON m_json = JSON::array();
 };
 
-inline void Rect::accept(IVisitor& visitor)
+class JSONDeserializer final
 {
-    visitor.visit(*this);
-}
+public:
+    static std::vector<std::shared_ptr<AComponent>> deserialize(const JSON& json)
+    {
+        std::vector<std::shared_ptr<AComponent>> components;
+        if (json.is_array())
+            for (const auto& item : json)
+                if (auto component = deserializeComponent(item))
+                    components.push_back(component);
+        return components;
+    }
 
-inline void Polygon::accept(IVisitor& visitor)
+private:
+    static std::shared_ptr<AComponent> deserializeComponent(const JSON& json)
+    {
+        if (!json.is_object()) return nullptr;
+
+        unsigned int id = json.value("id", 0u);
+        int zLevel = json.value("zLevel", 0);
+        std::string name = json.value("name", "");
+        
+        std::unique_ptr<IShape> shape = nullptr;
+        if (json.contains("shape"))
+            shape = deserializeShape(json["shape"]);
+
+        if (name == "active")  return std::make_shared<Active>(id, zLevel, std::move(shape));
+        if (name == "poly")    return std::make_shared<Poly>(id, zLevel, std::move(shape));
+        if (name == "nwell")   return std::make_shared<NWell>(id, zLevel, std::move(shape));
+        if (name == "pwell")   return std::make_shared<PWell>(id, zLevel, std::move(shape));
+        if (name == "metal1")  return std::make_shared<Metal1>(id, zLevel, std::move(shape));
+        if (name == "via")     return std::make_shared<Via>(id, zLevel, std::move(shape));
+        if (name == "contact") return std::make_shared<Contact>(id, zLevel, std::move(shape));
+        
+        return nullptr;
+    }
+
+    static std::unique_ptr<IShape> deserializeShape(const JSON& json)
+    {
+        if (!json.is_object()) return nullptr;
+
+        unsigned int id = json.value("id", 0u);
+        std::string geometry = json.value("geometry", "");
+
+        if (geometry == "rectangle")
+        {
+            int x = json.value("x", 0);
+            int y = json.value("y", 0);
+            int width = json.value("width", 0);
+            int height = json.value("height", 0);
+            auto rect = std::make_unique<Rect>(Point(-1, x, y), width, height);
+            rect->id = id;
+            return rect;
+        }
+        else if (geometry == "polygon")
+        {
+            std::vector<Point> points;
+            if (json.contains("points") && json["points"].is_array())
+                for (const auto& pJson : json["points"])
+                    points.emplace_back(-1, pJson.value("x", 0), pJson.value("y", 0));
+            auto polygon = std::make_unique<PolygonShape>(points);
+            polygon->id = id;
+            return polygon;
+        }
+        return nullptr;
+    }
+};
+
+inline void Rect::accept(IVisitor& visitor) { visitor.visit(*this); }
+inline void PolygonShape::accept(IVisitor& visitor) { visitor.visit(*this); }
+
+template<typename Derived, typename Base>
+inline void CRTP<Derived, Base>::accept(IVisitor& visitor)
 {
-    visitor.visit(*this);
+    visitor.visit(static_cast<Derived&>(*this));
 }
 
 #endif // LAYERS_HPP

@@ -1,0 +1,19 @@
+{
+  "layerRules": [
+    { "layer": "active",  "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "poly",    "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "nwell",   "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "pwell",   "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "metal1",  "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "via",     "minWidth": 0, "minSpace": 0, "minArea": 0 },
+    { "layer": "contact", "minWidth": 0, "minSpace": 0, "minArea": 0 }
+  ],
+  "crossLayerRules": [
+    { "kind": "enclosure",    "inner": "via",     "outer": "metal1", "value": 0 },
+    { "kind": "enclosure",    "inner": "contact", "outer": "active", "value": 0 },
+    { "kind": "enclosure",    "inner": "contact", "outer": "poly",   "value": 0 },
+    { "kind": "overlap",      "inner": "active",  "outer": "nwell",  "value": 0 },
+    { "kind": "overlap",      "inner": "active",  "outer": "pwell",  "value": 0 },
+    { "kind": "intersection", "inner": "poly",    "outer": "active", "value": 0 }
+  ]
+}

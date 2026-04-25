@@ -2,8 +2,9 @@
 
 Point toPoint(const QPointF& p)
 {
-    int x = static_cast<int>(p.x());
-    int y = static_cast<int>(p.y());
+    constexpr int gap = 30;
+    int x = static_cast<int>(std::round(p.x() / gap)) * gap;
+    int y = static_cast<int>(std::round(p.y() / gap)) * gap;
     return Point(IdGenerator::generate(), x, y);
 }
 
@@ -22,7 +23,7 @@ QRectF toQRectF(const Rect& r)
     return QRectF(p.x(), p.y(), w, h);
 }
 
-QVector<std::shared_ptr<QPointF>> toQSharedPolygon(const Polygon& polygon)
+QVector<std::shared_ptr<QPointF>> toQSharedPolygon(const PolygonShape& polygon)
 {
     QVector<std::shared_ptr<QPointF>> sharedPolygon;
 

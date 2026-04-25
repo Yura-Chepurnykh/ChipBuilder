@@ -65,5 +65,5 @@ IShapeBuilder& PolygonBuilder::onDouble(const Point& p)
 
 std::unique_ptr<IShape> PolygonBuilder::build()
 {
-    return std::make_unique<Polygon>(m_polygon);
+    return std::make_unique<PolygonShape>(m_polygon);
 }

@@ -12,6 +12,8 @@ class View : public QGraphicsView
 public:
     View(SceneView* scene);
     void wheelEvent(QWheelEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
     SceneView* m_scene;

@@ -1,40 +1,33 @@
-#ifndef TOOLBAR_PRESENTER_H
-#define TOOLBAR_PRESENTER_H
+#ifndef TOOLBAR_PRESENTER_HPP
+#define TOOLBAR_PRESENTER_HPP
 
-#include <memory>
-#include <QDebug>
 #include <QObject>
-#include <typeindex>
+#include <memory>
 #include "toolbar.hpp"
 #include "layers.hpp"
 #include "id_generator.hpp"
-#include "scene_presenter.hpp"
-
-class SceneController;
 
 class ToolbarPresenter : public QObject
 {
     Q_OBJECT
-
 public:
-    ToolbarPresenter(Toolbar*);
-
-    SceneController* sceneController;
+    ToolbarPresenter(Toolbar* view);
 
 signals:
-    void selectedLayer(std::shared_ptr<Layer>);
+    void selectedLayer(std::shared_ptr<Layer> layer);
 
-public slots:
-    void handleNSubstrateClick();
-    void handlePSubstrateClick();
-    void handleNDiffusionClick();
-    void handlePDiffusionClick();
-    void handleOxideClick();
-    void handlePolysiliconClick();
+private slots:
+    void handleActiveClick();
+    void handlePolyClick();
+    void handleNWellClick();
+    void handlePWellClick();
+    void handleMetal1Click();
+    void handleViaClick();
+    void handleContactClick();
 
 private:
-    std::shared_ptr<Layer> m_selectedLayer;
     Toolbar* m_toolbarView;
+    std::shared_ptr<Layer> m_selectedLayer;
 };
 
-#endif // TOOLBAR_PRESENTER_H
+#endif // TOOLBAR_PRESENTER_HPP

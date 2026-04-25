@@ -11,6 +11,6 @@
 Point toPoint(const QPointF&);
 QPointF toQPointF(const Point&);
 QRectF toQRectF(const Rect&);
-QVector<std::shared_ptr<QPointF>> toQSharedPolygon(const Polygon&);
+QVector<std::shared_ptr<QPointF>> toQSharedPolygon(const PolygonShape&);
 
 #endif // MAPPERS_H

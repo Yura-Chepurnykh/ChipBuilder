@@ -2,12 +2,13 @@
 
 Toolbar::Toolbar()
 {
-    m_nSubstrate = createAction("N-Substrate");
-    m_pSubstrate = createAction("P-Substrate");
-    m_nDiffusion = createAction("N-Diffusion");
-    m_pDiffusion = createAction("P-Diffusion");
-    m_oxide = createAction("Oxide");
-    m_polysilicon = createAction("N-Polysilicon");
+    m_active = createAction("Active");
+    m_poly = createAction("Poly");
+    m_nwell = createAction("NWell");
+    m_pwell = createAction("PWell");
+    m_metal1 = createAction("Metal1");
+    m_via = createAction("Via");
+    m_contact = createAction("Contact");
 }
 
 // pattern fabric method

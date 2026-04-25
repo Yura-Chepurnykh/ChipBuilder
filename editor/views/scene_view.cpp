@@ -58,50 +58,82 @@ void SceneView::mousePressEvent(QGraphicsSceneMouseEvent* event)
     if (event->isAccepted())
         return;
 
-    if (m_isDrawRect)
+    if (m_isDrawRect || m_isRectSelection)
     {
-        startPoint = event->scenePos();
-        preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1));
+        constexpr int gap = 30;
+        qreal snappedX = std::round(event->scenePos().x() / gap) * gap;
+        qreal snappedY = std::round(event->scenePos().y() / gap) * gap;
+        startPoint = QPointF(snappedX, snappedY);
+        preview = addRect(QRectF(startPoint, startPoint), QPen(QColor(Qt::gray), 1, Qt::DashLine));
+    }
+    else if (m_isLassoSelection)
+    {
+        m_lassoPath = QPainterPath();
+        m_lassoPath.moveTo(event->scenePos());
+        lassoPreview = addPath(m_lassoPath, QPen(QColor(Qt::blue), 1, Qt::DashLine));
     }
 
     emit sceneClick(event->scenePos());
 
     QGraphicsScene::mousePressEvent(event);
-    // event->accept();
 }
 
 void SceneView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "SceneView::mouseMoveEvent\n");
 
-    // if (event->isAccepted())
-    //     return;
-
-    if (preview != nullptr & m_isDrawRect)
+    if (preview != nullptr && (m_isDrawRect || m_isRectSelection))
     {
-        QRectF rect(startPoint, event->scenePos());
+        constexpr int gap = 30;
+        qreal snappedX = std::round(event->scenePos().x() / gap) * gap;
+        qreal snappedY = std::round(event->scenePos().y() / gap) * gap;
+        
+        QRectF rect(startPoint, QPointF(snappedX, snappedY));
         rect = rect.normalized();
         preview->setRect(rect);
+    }
+    else if (m_isLassoSelection && lassoPreview != nullptr)
+    {
+        m_lassoPath.lineTo(event->scenePos());
+        lassoPreview->setPath(m_lassoPath);
     }
 
     emit sceneMouseMove(event->scenePos());
     QGraphicsScene::mouseMoveEvent(event);
-    // event->accept();
 }
 
 void SceneView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
     fprintf(stderr, "SceneView::mouseReleaseEvent\n");
 
-    // if (event->isAccepted())
-    //     return;
-
-    if (preview != nullptr & m_isDrawRect)
+    if (preview != nullptr)
     {
+        if (m_isRectSelection)
+        {
+            QRectF selectionRect = preview->rect().normalized();
+            QPainterPath path;
+            path.addRect(selectionRect);
+            setSelectionArea(path);
+            m_isRectSelection = false;
+        }
+        
         removeItem(preview);
         delete preview;
         preview = nullptr;
         m_isDrawRect = false;
+    }
+    else if (lassoPreview != nullptr)
+    {
+        if (m_isLassoSelection)
+        {
+            m_lassoPath.closeSubpath();
+            setSelectionArea(m_lassoPath);
+            m_isLassoSelection = false;
+        }
+        
+        removeItem(lassoPreview);
+        delete lassoPreview;
+        lassoPreview = nullptr;
     }
 
     emit sceneMouseRelease(event->scenePos());
@@ -109,5 +141,3 @@ void SceneView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 }
 
 void SceneView::handleDrawRectPreview() { m_isDrawRect = true; }
-
-

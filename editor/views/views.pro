@@ -39,9 +39,9 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../editor_models/build/release/ -leditor_models
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../editor_models/build/debug/ -leditor_models
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../editor_models/build/Desktop-Debug/release/ -leditor_models
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../editor_models/build/Desktop-Debug/debug/ -leditor_models
 else:unix: LIBS += -L$$PWD/../editor_models/build/ -leditor_models
 
-INCLUDEPATH += $$PWD/../editor_models/build
-DEPENDPATH += $$PWD/../editor_models/build
+INCLUDEPATH += $$PWD/../editor_models/build/
+DEPENDPATH += $$PWD/../editor_models/build/

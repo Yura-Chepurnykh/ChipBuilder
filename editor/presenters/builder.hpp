@@ -41,7 +41,7 @@ public:
     std::unique_ptr<IShape> build() override;
 
 private:
-    Polygon m_polygon;
+    PolygonShape m_polygon;
 };
 
 #endif // BUILDER_HPP

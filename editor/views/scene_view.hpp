@@ -28,8 +28,12 @@ public:
     SceneView() = default;
 
     QGraphicsRectItem* preview = nullptr;
+    QGraphicsPathItem* lassoPreview = nullptr;
     QPointF startPoint;
     bool m_isDrawRect;
+    bool m_isRectSelection;
+    bool m_isLassoSelection;
+    QPainterPath m_lassoPath;
 
 signals:
     void sceneClick(const QPointF&);

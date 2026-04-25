@@ -28,16 +28,13 @@ class StyleModel
 public:
     StyleModel()
     {
-        registerStyle(typeid(Substrate<NType>), Style{ QColor(Qt::red),         QPen(Qt::black, 1)});
-        registerStyle(typeid(Substrate<PType>), Style{ QColor(Qt::cyan),        QPen(Qt::black, 1)});
-        registerStyle(typeid(Diffusion<NType>), Style{ QColor(Qt::blue),        QPen(Qt::black, 1)});
-        registerStyle(typeid(Diffusion<PType>), Style{ QColor(Qt::gray),        QPen(Qt::black, 1)});
-        registerStyle(typeid(Oxide),            Style{ QColor(Qt::green),       QPen(Qt::black, 1)});
-        registerStyle(typeid(PolySilicon),      Style{ QColor(Qt::darkRed),     QPen(Qt::black, 1)});
-        registerStyle(typeid(Metal<1>),         Style{ QColor(Qt::magenta),     QPen(Qt::black, 1)});
-        registerStyle(typeid(Metal<2>),         Style{ QColor(Qt::darkMagenta), QPen(Qt::black, 1)});
-        registerStyle(typeid(Metal<3>),         Style{ QColor(Qt::darkCyan),    QPen(Qt::black, 1)});
-        registerStyle(typeid(Metal<4>),         Style{ QColor(Qt::darkYellow),  QPen(Qt::black, 1)});
+        registerStyle(typeid(Active),  Style{ QColor(Qt::green),       QPen(Qt::black, 1)});
+        registerStyle(typeid(Poly),    Style{ QColor(Qt::red),         QPen(Qt::black, 1)});
+        registerStyle(typeid(NWell),   Style{ QColor(Qt::yellow),      QPen(Qt::black, 1)});
+        registerStyle(typeid(PWell),   Style{ QColor(Qt::cyan),        QPen(Qt::black, 1)});
+        registerStyle(typeid(Metal1),  Style{ QColor(Qt::blue),        QPen(Qt::black, 1)});
+        registerStyle(typeid(Via),     Style{ QColor(Qt::white),       QPen(Qt::black, 1)});
+        registerStyle(typeid(Contact), Style{ QColor(Qt::gray),        QPen(Qt::black, 1)});
     }
 
     void registerStyle(std::type_index idx, const Style& value)
@@ -58,74 +55,5 @@ public:
 private:
     std::unordered_map<std::type_index, Style> m_styles;
 };
-
-// TODO: implement a version with StyleKey
-// enum class State
-// {
-//     Normal,
-//     Selected,
-//     Hover
-// };
-
-// struct StyleKey
-// {
-//     std::type_index typeIdx;
-//     State state;
-
-//     bool operator==(const StyleKey& other) const
-//     {
-//         return state == other.state && typeIdx == other.typeIdx;
-//     }
-// };
-
-// struct Style
-// {
-//     QColor background;
-//     QPen pen;
-// };
-
-// struct StyleKeyHash
-// {
-//     size_t operator()(const StyleKey& key) const
-//     {
-//         auto h1 = std::hash<std::type_index>{}(key.typeIdx);
-//         auto h2 = std::hash<std::underlying_type_t<State>>{}
-//             (static_cast<std::underlying_type_t<State>>(key.state));
-
-//         return h1 ^ (h2 << 1);
-//     }
-// };
-
-// class LayerModel
-// {
-// public:
-//     LayerModel()
-//     {
-//         registerStyle(typeid(Substrate<NType>), Style{ QColor(Qt::blue),    QPen(Qt::red, 2)});
-//         registerStyle(typeid(Substrate<PType>), Style{ QColor(Qt::cyan),    QPen(Qt::red, 2)});
-//         registerStyle(typeid(Diffusion<NType>), Style{ QColor(Qt::blue),    QPen(Qt::red, 2)});
-//         registerStyle(typeid(Diffusion<PType>), Style{ QColor(Qt::gray),    QPen(Qt::red, 2)});
-//         registerStyle(typeid(Oxide),            Style{ QColor(Qt::green),   QPen(Qt::red, 2)});
-//         registerStyle(typeid(PolySilicon),      Style{ QColor(Qt::darkRed), QPen(Qt::red, 2)});
-//     }
-
-//     void registerStyle(std::type_index idx, const Style& value, State state = State::Normal)
-//     {
-//         m_styles[StyleKey{ typeid(idx), state }] = value;
-//     }
-
-//     std::optional<Style> getStyle(std::type_index idx, State state = State::Normal)
-//     {
-//         if (auto it = m_styles.find({typeid(idx), state}); it != m_styles.end())
-//         {
-//             return it->second;
-//         }
-
-//         return std::nullopt;
-//     }
-
-// private:
-//     std::unordered_map<StyleKey, Style, StyleKeyHash> m_styles;
-// };
 
 #endif // LAYER_MODEL_HPP

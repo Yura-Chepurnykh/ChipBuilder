@@ -13,6 +13,9 @@
 #include "builder.hpp"
 #include "id_generator.hpp"
 #include <QObject>
+#include <QThread>
+#include <QGraphicsItemGroup>
+#include "DRCWorker.hpp"
 
 class ScenePresenter;
 
@@ -73,11 +76,13 @@ class ScenePresenter : public QObject
 
 public:
     ScenePresenter(Context&, SceneView&) noexcept;
+    ~ScenePresenter();
     void setState(std::unique_ptr<IStrategy>);
     void handle(const QPointF&);
 
 signals:
     void drawRectPreview();
+    void drcViolationsFound(QStringList messages);
 
 public slots:
     void handleLayerPress(int);
@@ -87,12 +92,31 @@ public slots:
     void onSelectedLayer(std::shared_ptr<Layer>);
 
     void handleMoved(int, const QPointF&, const QPointF&);
+    void handleResized(int, const QRectF&, const QRectF&);
+    void handleGeometryChanged(int, const QRectF&);
 
 public slots:
     void handleMKeyPress();
     void handleDeleteKeyPress();
     void handleUndoPress();
     void handleRedoPress();
+
+    void handleRaiseLayer(int);
+    void handleLowerLayer(int);
+    void handleSetLayerLevel(int, int);
+
+    void bindView(QGraphicsItem*);
+
+    void handleRectSelectionTriggered();
+    void handleLassoSelectionTriggered();
+    void handlePanningTriggered();
+
+    void handleZoomIn();
+    void handleZoomOut();
+    void handleGroupUngroup();
+
+    void loadRules(const QString& filePath);
+    void syncDRC();
 
 public:
     Context& m_context;
@@ -101,6 +125,13 @@ public:
     std::shared_ptr<AComponent> m_selectedComponent;
     std::unique_ptr<IShapeBuilder> m_builder;
     CommandManager m_manager;
+
+    QThread m_drcThread;
+    DRCWorker* m_drcWorker;
+    QGraphicsItemGroup* m_drcErrorGroup;
+
+public slots:
+    void handleDRCErrors(QVector<int> errorIds);
 };
 
 #endif // SCENE_PRESENTER_H

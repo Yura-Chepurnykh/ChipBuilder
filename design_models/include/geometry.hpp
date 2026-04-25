@@ -4,14 +4,6 @@
 #include <vector>
 #include <cmath>
 
-// We are not use templates for Pos and Rect, since
-// in VLSI does not use floating point numbers, instead
-// for present number used the power, for example
-// 4.5 * 10e-9 => 45 * 10e-10
-
-// From gemotries point of view line does not have thickness,
-// line is an abstract object
-
 struct IVisitor;
 
 struct Point
@@ -19,9 +11,12 @@ struct Point
     Point(unsigned int id = -1, int x = int(), int y = int()) noexcept : id(id), x(x), y(y) { }
     unsigned int id;
     int x, y;
+
+    bool operator==(const Point& other) const {
+        return x == other.x && y == other.y;
+    }
 };
 
-// dummy class for polymorphism
 struct IShape
 {
     unsigned int id; 
@@ -31,9 +26,9 @@ struct IShape
     virtual void accept(IVisitor&) = 0;
 };
 
-struct Polygon final : public IShape
+struct PolygonShape final : public IShape
 {
-    Polygon(const std::vector<Point>& points = std::vector<Point>()) noexcept : m_points(points) { }
+    PolygonShape(const std::vector<Point>& points = std::vector<Point>()) noexcept : m_points(points) { }
 
     void move(int dx, int dy) override
     {
@@ -46,11 +41,10 @@ struct Polygon final : public IShape
 
     void move(const Point& point) override
     {
-        for (auto& p : m_points)
-        {
-            p.x = point.x;
-            p.y = point.y;
-        }
+        if (m_points.empty()) return;
+        int dx = point.x - m_points[0].x;
+        int dy = point.y - m_points[0].y;
+        move(dx, dy);
     }
 
     void accept(IVisitor&) override;
@@ -62,8 +56,12 @@ struct Rect final : public IShape
 {
     Rect(Point p = Point(), int w = int(), int h = int()) noexcept : point(p), width(w), height(h) { }
 
-    Rect(Point leftTop, Point rightBottom) noexcept : point(leftTop)
+    Rect(Point leftTop, Point rightBottom) noexcept 
     {
+        if (leftTop.x > rightBottom.x && leftTop.y > rightBottom.y) {
+            point = rightBottom;
+        }   
+
         width = std::abs(rightBottom.x - leftTop.x);
         height = std::abs(rightBottom.y - leftTop.y);
     }
@@ -95,6 +93,21 @@ struct Rect final : public IShape
 
     Point point;
     int width, height;
+
+    // bool intersects(const Rect& other) const {
+    //     return !(point.x + width < other.point.x ||
+    //              other.point.x + other.width < point.x ||
+    //              point.y + height < other.point.y ||
+    //              other.point.y + other.height < point.y);
+    // }
+    
+    // bool touches(const Rect& other) const {
+    //     // Simple touch/intersect check: if they overlap or boundaries touch
+    //     return !(point.x + width < other.point.x ||
+    //              other.point.x + other.width < point.x ||
+    //              point.y + height < other.point.y ||
+    //              other.point.y + other.height < point.y);
+    // }
 };
 
 #endif // GEOMETRY_HPP
