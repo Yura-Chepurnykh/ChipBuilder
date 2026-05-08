@@ -28,17 +28,22 @@ public:
     SceneView() = default;
 
     QGraphicsRectItem* preview = nullptr;
+    QGraphicsPathItem* polygonPreview = nullptr;
+    QGraphicsRectItem* m_cursorPreview = nullptr;
     QGraphicsPathItem* lassoPreview = nullptr;
     QPointF startPoint;
     bool m_isDrawRect;
+    bool m_isDrawPolygon = false;
     bool m_isRectSelection;
     bool m_isLassoSelection;
     QPainterPath m_lassoPath;
+    QVector<QPointF> m_polygonPoints;
 
 signals:
     void sceneClick(const QPointF&);
     void sceneMouseMove(const QPointF&);
     void sceneMouseRelease(const QPointF&);
+    void sceneMouseDoubleClick(const QPointF&);
 
 signals:
     void mKeyPress();
@@ -48,6 +53,7 @@ signals:
 
 public slots:
     void handleDrawRectPreview();
+    void handleDrawPolygonPreview();
 
 protected:
     void drawBackground(QPainter *painter, const QRectF &rect) override;
@@ -56,7 +62,7 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-    // void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override;
 };
 
 #endif // SCENE_VIEW_H

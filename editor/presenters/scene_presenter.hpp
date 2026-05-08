@@ -13,9 +13,7 @@
 #include "builder.hpp"
 #include "id_generator.hpp"
 #include <QObject>
-#include <QThread>
 #include <QGraphicsItemGroup>
-#include "DRCWorker.hpp"
 
 class ScenePresenter;
 
@@ -82,13 +80,14 @@ public:
 
 signals:
     void drawRectPreview();
-    void drcViolationsFound(QStringList messages);
+    void drawPolygonPreview();
 
 public slots:
     void handleLayerPress(int);
     void handleSceneClick(const QPointF&);
     void handleMouseMove(const QPointF&);
     void handleMouseRelease(const QPointF&);
+    void handleMouseDoubleClick(const QPointF&);
     void onSelectedLayer(std::shared_ptr<Layer>);
 
     void handleMoved(int, const QPointF&, const QPointF&);
@@ -115,9 +114,6 @@ public slots:
     void handleZoomOut();
     void handleGroupUngroup();
 
-    void loadRules(const QString& filePath);
-    void syncDRC();
-
 public:
     Context& m_context;
     SceneView& m_view;
@@ -125,13 +121,6 @@ public:
     std::shared_ptr<AComponent> m_selectedComponent;
     std::unique_ptr<IShapeBuilder> m_builder;
     CommandManager m_manager;
-
-    QThread m_drcThread;
-    DRCWorker* m_drcWorker;
-    QGraphicsItemGroup* m_drcErrorGroup;
-
-public slots:
-    void handleDRCErrors(QVector<int> errorIds);
 };
 
 #endif // SCENE_PRESENTER_H

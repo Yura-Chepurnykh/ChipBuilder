@@ -11,18 +11,13 @@ ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
     m_selectedComponent(nullptr),
     m_builder(nullptr)
 {
-    m_drcWorker = new DRCWorker();
-    m_drcWorker->moveToThread(&m_drcThread);
-    connect(&m_drcThread, &QThread::finished, m_drcWorker, &QObject::deleteLater);
-    connect(m_drcWorker, &DRCWorker::errorsUpdated, this, &ScenePresenter::handleDRCErrors);
-    connect(m_drcWorker, &DRCWorker::violationsUpdated, this, &ScenePresenter::drcViolationsFound);
-    m_drcThread.start();
-
     connect(&m_view, &SceneView::sceneClick, this, &ScenePresenter::handleSceneClick);
     connect(&m_view, &SceneView::sceneMouseMove, this, &ScenePresenter::handleMouseMove);
     connect(&m_view, &SceneView::sceneMouseRelease, this, &ScenePresenter::handleMouseRelease);
+    connect(&m_view, &SceneView::sceneMouseDoubleClick, this, &ScenePresenter::handleMouseDoubleClick);
     connect(&m_view, &SceneView::mKeyPress, this, &ScenePresenter::handleMKeyPress);
     connect(this,    &ScenePresenter::drawRectPreview, &m_view, &SceneView::handleDrawRectPreview);
+    connect(this,    &ScenePresenter::drawPolygonPreview, &m_view, &SceneView::handleDrawPolygonPreview);
     connect(&m_view, &SceneView::deleteKeyPress, this, &ScenePresenter::handleDeleteKeyPress);
     connect(&m_view, &SceneView::undoPress, this, &ScenePresenter::handleUndoPress);
     connect(&m_view, &SceneView::redoPress, this, &ScenePresenter::handleRedoPress);
@@ -79,7 +74,6 @@ void ScenePresenter::handleDeleteKeyPress()
             m_manager.execute(groupCommand, m_context, m_view);
         }
     }
-    syncDRC();
 }
 
 void ScenePresenter::handleMKeyPress()
@@ -108,7 +102,12 @@ void ScenePresenter::handleMouseRelease(const QPointF& p)
 {
     m_strategy = std::make_unique<ReleaseStrategy>(p, *this);
     m_strategy->handle(p);
-    syncDRC();
+}
+
+void ScenePresenter::handleMouseDoubleClick(const QPointF& p)
+{
+    m_strategy = std::make_unique<DoubleClickStrategy>(p, *this);
+    m_strategy->handle(p);
 }
 
 void ScenePresenter::handleLayerPress(int id)
@@ -125,8 +124,16 @@ void ScenePresenter::onSelectedLayer(std::shared_ptr<Layer> selected)
 {
     for (auto* view : m_view.views()) view->setDragMode(QGraphicsView::NoDrag);
     m_selectedComponent = selected;
-    m_builder = std::make_unique<RectBuilder>();
-    emit drawRectPreview();
+    if (dynamic_cast<Metal1*>(selected.get()))
+    {
+        m_builder = std::make_unique<PolygonBuilder>();
+        emit drawPolygonPreview();
+    }
+    else
+    {
+        m_builder = std::make_unique<RectBuilder>();
+        emit drawRectPreview();
+    }
 }
 
 PressStrategy::PressStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }
@@ -165,6 +172,12 @@ void ReleaseStrategy::handle(const QPointF& p)
 {
     if (!m_presenter.m_builder) return;
 
+    if (dynamic_cast<PolygonBuilder*>(m_presenter.m_builder.get()))
+    {
+        m_presenter.m_builder->onRelease(toPoint(p));
+        return;
+    }
+
     auto shape = m_presenter.m_builder->onRelease(toPoint(p)).build();
     if (auto r = dynamic_cast<Rect*>(shape.get())) {
         if (r->width < 0) { r->point.x += r->width; r->width = -r->width; }
@@ -186,18 +199,39 @@ void ReleaseStrategy::handle(const QPointF& p)
 }
 
 DoubleClickStrategy::DoubleClickStrategy(const QPointF& p, ScenePresenter& presenter) : p(p), m_presenter(presenter) { }
-void DoubleClickStrategy::handle(const QPointF& p) { }
+void DoubleClickStrategy::handle(const QPointF& p)
+{
+    if (!m_presenter.m_builder) return;
+
+    auto shape = m_presenter.m_builder->onDouble(toPoint(p)).build();
+    if (auto poly = dynamic_cast<PolygonShape*>(shape.get()))
+    {
+        if (poly->m_points.size() < 2) return;
+    }
+
+    auto style = StyleModel().getStyle(typeid(*m_presenter.m_selectedComponent));
+    auto view = ViewFactory::create(shape.get(), *style, QString::fromStdString(m_presenter.m_selectedComponent->name()));
+    m_presenter.m_selectedComponent->setShape(std::move(shape));
+
+    auto action = std::make_shared<CreateLayerAction>(m_presenter.m_selectedComponent, view);
+    auto undoAction = std::make_shared<RemoveLayerAction>(m_presenter.m_selectedComponent);
+    auto command = std::make_shared<CreateLayerCommand>(action, undoAction);
+
+    m_presenter.m_manager.execute(command, m_presenter.m_context, m_presenter.m_view);
+
+    m_presenter.bindView(view);
+    
+    m_presenter.m_builder = nullptr;
+}
 
 void ScenePresenter::handleUndoPress()
 {
     m_manager.undo(m_view, m_context);
-    syncDRC();
 }
 
 void ScenePresenter::handleRedoPress()
 {
     m_manager.redo(m_view, m_context);
-    syncDRC();
 }
 
 void ScenePresenter::handleRectSelectionTriggered()
@@ -205,6 +239,8 @@ void ScenePresenter::handleRectSelectionTriggered()
     for (auto* view : m_view.views()) view->setDragMode(QGraphicsView::NoDrag);
     m_view.m_isRectSelection = true;
     m_view.m_isLassoSelection = false;
+    m_view.m_isDrawRect = false;
+    m_view.m_isDrawPolygon = false;
     m_selectedComponent = nullptr;
     m_builder = nullptr;
 }
@@ -214,6 +250,8 @@ void ScenePresenter::handleLassoSelectionTriggered()
     for (auto* view : m_view.views()) view->setDragMode(QGraphicsView::NoDrag);
     m_view.m_isRectSelection = false;
     m_view.m_isLassoSelection = true;
+    m_view.m_isDrawRect = false;
+    m_view.m_isDrawPolygon = false;
     m_selectedComponent = nullptr;
     m_builder = nullptr;
 }
@@ -221,6 +259,10 @@ void ScenePresenter::handleLassoSelectionTriggered()
 void ScenePresenter::handlePanningTriggered()
 {
     for (auto* view : m_view.views()) view->setDragMode(QGraphicsView::ScrollHandDrag);
+    m_view.m_isRectSelection = false;
+    m_view.m_isLassoSelection = false;
+    m_view.m_isDrawRect = false;
+    m_view.m_isDrawPolygon = false;
     m_selectedComponent = nullptr;
     m_builder = nullptr;
 }
@@ -256,12 +298,6 @@ void ScenePresenter::handleGroupUngroup()
             if (it != m_context.m_layout.m_components.end()) components.push_back(*it);
         }
     }
-
-    // if (components.size() > 1)
-    // {
-    //     // auto mergedShape = UnionHandler::tryMerge(components);
-    // }
-    // syncDRC();
 }
 
 void ScenePresenter::handleRaiseLayer(int id)
@@ -290,7 +326,6 @@ void ScenePresenter::handleRaiseLayer(int id)
             break;
         }
     }
-    syncDRC();
     m_view.update();
 }
 
@@ -319,7 +354,6 @@ void ScenePresenter::handleLowerLayer(int id)
             break;
         }
     }
-    syncDRC();
     m_view.update();
 }
 
@@ -347,7 +381,6 @@ void ScenePresenter::handleSetLayerLevel(int id, int level)
             break;
         }
     }
-    syncDRC();
     m_view.update();
 }
 
@@ -364,7 +397,6 @@ void ScenePresenter::handleMoved(int id, const QPointF& prev, const QPointF& cur
     auto action = std::make_shared<MovedComponentAction>(m_selectedComponent, toPoint(curr));
     auto command = std::make_shared<MovedComponentCommand>(action, undoAction);
     m_manager.execute(command, m_context, m_view);
-    syncDRC();
 }
 
 void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& curr)
@@ -383,13 +415,11 @@ void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& cur
     auto undoAction = std::make_shared<ResizedComponentAction>(m_selectedComponent, normPrev);
     auto command = std::make_shared<ResizedComponentCommand>(action, undoAction);
     m_manager.execute(command, m_context, m_view);
-    syncDRC();
 }
 
 void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
 {
     QRectF normCurr = curr.normalized();
-    // Real-time update of the model for DRC
     auto modelId = m_context.m_viewToModel[id];
     for (auto& component : m_context.m_layout.m_components)
     {
@@ -405,51 +435,8 @@ void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
             }
         }
     }
-    syncDRC();
-}
-
-void ScenePresenter::loadRules(const QString& filePath)
-{
-    if (m_drcWorker) {
-        QMetaObject::invokeMethod(m_drcWorker, "loadRules", Qt::QueuedConnection, Q_ARG(QString, filePath));
-    }
-}
-
-void ScenePresenter::syncDRC()
-{
-    std::vector<DRCInput> layout;
-    for (const auto& component : m_context.m_layout.m_components)
-    {
-        if (auto r = dynamic_cast<Rect*>(component->getShape()))
-        {
-            layout.push_back({ (int)component->id, component->name(), QRectF(r->point.x, r->point.y, r->width, r->height), component->zLevel });
-        }
-    }
-    m_drcWorker->updateLayout(std::move(layout));
-}
-
-void ScenePresenter::handleDRCErrors(QVector<int> errorIds)
-{
-    std::unordered_set<int> errorSet;
-    for (int id : errorIds) errorSet.insert(id);
-
-    for (auto* item : m_view.items())
-    {
-        if (auto* layer = dynamic_cast<LayerView*>(item))
-        {
-            auto modelId = m_context.m_viewToModel[layer->id];
-            bool hasError = errorSet.contains((int)modelId);
-            if (layer->m_isDRCError != hasError)
-            {
-                layer->m_isDRCError = hasError;
-                layer->update();
-            }
-        }
-    }
 }
 
 ScenePresenter::~ScenePresenter()
 {
-    m_drcThread.quit();
-    m_drcThread.wait();
 }

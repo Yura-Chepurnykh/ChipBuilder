@@ -23,10 +23,8 @@ public slots:
     void handleOpen();
     void handleSave();
     void handleSaveAs();
-    void handleLoadRules();
 
 signals:
-    void loadRulesTriggered(const QString& filePath);
     void rectSelectionTriggered();
     void lassoSelectionTriggered();
     void panningTriggered();

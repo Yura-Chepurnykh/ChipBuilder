@@ -17,7 +17,6 @@ file(GLOB_RECURSE SOURCES
 add_executable(chip_builder main.cpp ${SOURCES})
 
 target_include_directories(chip_builder PRIVATE 
-    core/drc/include
     core/data_structures/include
     models/include
     utils/concepts/include

@@ -27,8 +27,7 @@ SOURCES += \
     mappers.cpp \
     menubar_presenter.cpp \
     scene_presenter.cpp \
-    toolbar_presenter.cpp \
-    DRCWorker.cpp
+    toolbar_presenter.cpp
 
 HEADERS += \
     builder.hpp \
@@ -38,8 +37,7 @@ HEADERS += \
     mappers.hpp \
     menubar_presenter.hpp \
     scene_presenter.hpp \
-    toolbar_presenter.hpp \
-    DRCWorker.hpp
+    toolbar_presenter.hpp
 
 FORMS +=
 

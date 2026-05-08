@@ -32,11 +32,12 @@ IShapeBuilder& PolygonBuilder::onPress(const Point& p)
 {
     if (m_polygon.m_points.empty())
     {
-        m_polygon.m_points.push_back(p);
-        m_polygon.m_points.push_back(p);
+        m_polygon.m_points.push_back(p); // First point (fixed)
+        m_polygon.m_points.push_back(p); // Second point (moving)
     }
     else
     {
+        // Fix the current moving point and prepare a new one
         m_polygon.m_points.back() = p;
         m_polygon.m_points.push_back(p);
     }
@@ -46,24 +47,41 @@ IShapeBuilder& PolygonBuilder::onPress(const Point& p)
 
 IShapeBuilder& PolygonBuilder::onRelease(const Point& p)
 {
-    onPress(p);
+    // For polygon, we don't necessarily add a point on release
+    // if we already added it on press.
+    // The user said "когда он делает mousePressEvent создается этот полигон, 
+    // потом когда делает снова mousePressEvent полигон увеличивается"
     return *this;
 }
 
 IShapeBuilder& PolygonBuilder::onMove(const Point& p)
 {
-    fprintf(stderr, "PolygonBuilder::onMove");
-    m_polygon.m_points.back() = p;
+    if (!m_polygon.m_points.empty())
+    {
+        m_polygon.m_points.back() = p;
+    }
     return *this;
 }
 
 IShapeBuilder& PolygonBuilder::onDouble(const Point& p)
 {
-    onPress(p);
+    if (!m_polygon.m_points.empty())
+    {
+        m_polygon.m_points.back() = p;
+    }
     return *this;
 }
 
 std::unique_ptr<IShape> PolygonBuilder::build()
 {
-    return std::make_unique<PolygonShape>(m_polygon);
+    // Clean up identical consecutive points
+    std::vector<Point> cleaned;
+    for (const auto& p : m_polygon.m_points)
+    {
+        if (cleaned.empty() || !(cleaned.back() == p))
+        {
+            cleaned.push_back(p);
+        }
+    }
+    return std::make_unique<PolygonShape>(cleaned);
 }

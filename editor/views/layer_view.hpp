@@ -61,7 +61,6 @@ public:
     QString m_name;
     QLabel* m_label = nullptr;
     bool m_isDrag = false;
-    bool m_isDRCError = false;
     int m_resizeDirection = 0;
     QPointF m_start, m_prevPos;
     QRectF m_rect, m_prevRect;

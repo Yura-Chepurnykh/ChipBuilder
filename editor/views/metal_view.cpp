@@ -4,7 +4,7 @@
 MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m_path(p), m_style(s)
 {
     m_style.pen.setColor(Qt::magenta);
-    m_style.pen.setWidth(50);
+    m_style.pen.setWidth(30); // Matches grid gap
     m_style.pen.setStyle(Qt::SolidLine);
     m_style.pen.setJoinStyle(Qt::MiterJoin);
     m_style.pen.setCapStyle(Qt::FlatCap);
@@ -15,7 +15,7 @@ MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m
 
 QRectF MetalView::boundingRect() const
 {
-    return shape().boundingRect().adjusted(-50, -50, 50, 50);
+    return shape().boundingRect().adjusted(-20, -20, 20, 20);
 }
 
 QPainterPath MetalView::shape() const
@@ -49,8 +49,14 @@ void MetalView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     }
     painter->setPen(pen);
 
-    for (int i = 1; i < m_path.size(); ++i)
-        painter->drawLine(*m_path[i-1], *m_path[i]);
+    QPainterPath path;
+    if (!m_path.isEmpty())
+    {
+        path.moveTo(*m_path[0]);
+        for (int i = 1; i < m_path.size(); ++i)
+            path.lineTo(*m_path[i]);
+    }
+    painter->drawPath(path);
 
     if (isSelected())
     {

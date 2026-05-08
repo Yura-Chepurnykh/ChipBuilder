@@ -33,11 +33,6 @@ void LayerView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 
     painter->fillRect(m_rect, QColor(m_style.background));
     
-    if (m_isDRCError)
-    {
-        painter->fillRect(m_rect, QColor(255, 0, 0, 255)); // Solid red on top
-    }
-
     QPen pen = m_style.pen;
 
     if (isSelected())

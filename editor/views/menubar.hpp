@@ -14,14 +14,11 @@ public:
         m_open = new QAction("Open", this);
         m_save = new QAction("Save", this);
         m_saveAs = new QAction("Save As", this);
-        m_loadRules = new QAction("Load Rules", this);
 
         addAction(m_new);
         addAction(m_open);
         addAction(m_save);
         addAction(m_saveAs);
-        addSeparator();
-        addAction(m_loadRules);
     }
 
 // private:
@@ -29,7 +26,6 @@ public:
     QAction* m_open;
     QAction* m_save;
     QAction* m_saveAs;
-    QAction* m_loadRules;
 };
 
 class SelectionMenu final : public QMenu

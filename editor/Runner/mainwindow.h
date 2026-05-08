@@ -4,8 +4,6 @@
 #include <QMainWindow>
 #include <QDebug>
 #include <QObject>
-#include <QListWidget>
-#include <QLabel>
 #include "scene_view.hpp"
 #include "scene_presenter.hpp"
 #include "toolbar_presenter.hpp"
@@ -39,7 +37,5 @@ private:
     MenuBarPresenter* m_menuBarPresenter;
     MenuBar* m_menuBar;
     View* m_view;
-    QListWidget* m_drcList;
-    QLabel* m_drcStatusLabel;
 };
 #endif // MAINWINDOW_H

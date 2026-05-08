@@ -22,10 +22,6 @@ MenuBarPresenter::MenuBarPresenter(Context& context, MenuBar& menuBar, SceneView
         handleSaveAs();
     });
 
-    connect(m_menuBarView.m_fileMenu->m_loadRules, &QAction::triggered, [this]() {
-        handleLoadRules();
-    });
-
     connect(m_menuBarView.m_selectionMenu->m_rectSelection, &QAction::triggered, [this]() {
         emit rectSelectionTriggered();
     });
@@ -168,21 +164,6 @@ void MenuBarPresenter::handleSaveAs()
 
     m_currentPath = stringName;
     saveToFile(stringName);
-}
-
-void MenuBarPresenter::handleLoadRules()
-{
-    QString name = QFileDialog::getOpenFileName(
-        nullptr,
-        "Load DRC Rules",
-        "",
-        "Rules (*.json)"
-        );
-
-    if (name.isEmpty())
-        return;
-
-    emit loadRulesTriggered(name);
 }
 
 void MenuBarPresenter::saveToFile(const std::string& currentPath)
