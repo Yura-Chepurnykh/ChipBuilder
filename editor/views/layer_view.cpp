@@ -203,53 +203,93 @@ void LayerView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
         {
             case ResizeDirection::Left:
             {
-                qreal diff = localSnapped.x() - m_rect.left();
-                m_rect.setLeft(localSnapped.x());
-                setPos(mapToScene(QPointF(diff, 0)));
+                qreal oldRight = scenePos().x() + m_rect.right();
+                qreal newLeft = snappedX;
+                qreal newWidth = oldRight - newLeft;
+                if (newWidth >= gap) {
+                    setPos(newLeft, scenePos().y());
+                    m_rect.setRight(newWidth);
+                    m_rect.setLeft(0);
+                }
                 break;
             }
             case ResizeDirection::Top:
             {
-                qreal diff = localSnapped.y() - m_rect.top();
-                m_rect.setTop(localSnapped.y());
-                setPos(mapToScene(QPointF(0, diff)));
+                qreal oldBottom = scenePos().y() + m_rect.bottom();
+                qreal newTop = snappedY;
+                qreal newHeight = oldBottom - newTop;
+                if (newHeight >= gap) {
+                    setPos(scenePos().x(), newTop);
+                    m_rect.setBottom(newHeight);
+                    m_rect.setTop(0);
+                }
                 break;
             }
             case ResizeDirection::Right:
             {
-                m_rect.setRight(localSnapped.x());
+                qreal newWidth = snappedX - scenePos().x();
+                if (newWidth >= gap) m_rect.setRight(newWidth);
                 break;
             }
             case ResizeDirection::Bottom:
             {
-                m_rect.setBottom(localSnapped.y());
+                qreal newHeight = snappedY - scenePos().y();
+                if (newHeight >= gap) m_rect.setBottom(newHeight);
                 break;
             }
             case (ResizeDirection::Left | ResizeDirection::Top):
             {
-                qreal diffX = localSnapped.x() - m_rect.left();
-                qreal diffY = localSnapped.y() - m_rect.top();
-                m_rect.setTopLeft(localSnapped);
-                setPos(mapToScene(QPointF(diffX, diffY)));
+                qreal oldRight = scenePos().x() + m_rect.right();
+                qreal oldBottom = scenePos().y() + m_rect.bottom();
+                qreal newLeft = snappedX;
+                qreal newTop = snappedY;
+                qreal newWidth = oldRight - newLeft;
+                qreal newHeight = oldBottom - newTop;
+                if (newWidth >= gap && newHeight >= gap) {
+                    setPos(newLeft, newTop);
+                    m_rect.setRight(newWidth);
+                    m_rect.setBottom(newHeight);
+                    m_rect.setLeft(0);
+                    m_rect.setTop(0);
+                }
                 break;
             }
             case (ResizeDirection::Top | ResizeDirection::Right):
             {
-                qreal diffY = localSnapped.y() - m_rect.top();
-                m_rect.setTopRight(localSnapped);
-                setPos(mapToScene(QPointF(0, diffY)));
+                qreal oldBottom = scenePos().y() + m_rect.bottom();
+                qreal newTop = snappedY;
+                qreal newRight = snappedX;
+                qreal newWidth = newRight - scenePos().x();
+                qreal newHeight = oldBottom - newTop;
+                if (newWidth >= gap && newHeight >= gap) {
+                    setPos(scenePos().x(), newTop);
+                    m_rect.setRight(newWidth);
+                    m_rect.setBottom(newHeight);
+                    m_rect.setTop(0);
+                }
                 break;
             }
             case (ResizeDirection::Right | ResizeDirection::Bottom):
             {
-                m_rect.setBottomRight(localSnapped);
+                qreal newWidth = snappedX - scenePos().x();
+                qreal newHeight = snappedY - scenePos().y();
+                if (newWidth >= gap) m_rect.setRight(newWidth);
+                if (newHeight >= gap) m_rect.setBottom(newHeight);
                 break;
             }
             case (ResizeDirection::Bottom | ResizeDirection::Left):
             {
-                qreal diffX = localSnapped.x() - m_rect.left();
-                m_rect.setBottomLeft(localSnapped);
-                setPos(mapToScene(QPointF(diffX, 0)));
+                qreal oldRight = scenePos().x() + m_rect.right();
+                qreal newLeft = snappedX;
+                qreal newBottom = snappedY;
+                qreal newWidth = oldRight - newLeft;
+                qreal newHeight = newBottom - scenePos().y();
+                if (newWidth >= gap && newHeight >= gap) {
+                    setPos(newLeft, scenePos().y());
+                    m_rect.setRight(newWidth);
+                    m_rect.setBottom(newHeight);
+                    m_rect.setLeft(0);
+                }
                 break;
             }
         }

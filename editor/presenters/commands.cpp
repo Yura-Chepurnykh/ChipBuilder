@@ -268,10 +268,14 @@ void MovedComponentAction::execute(SceneView& view, Context& context)
 
     for (const auto& item : view.items())
     {
-        if (auto layerView = dynamic_cast<LayerView*>(item))
+        int itemId = -1;
+        if (auto* lv = dynamic_cast<LayerView*>(item)) itemId = lv->id;
+        else if (auto* mv = dynamic_cast<MetalView*>(item)) itemId = mv->id;
+
+        if (itemId == viewId)
         {
-            if (layerView->id == viewId)
-                layerView->setPos(toQPointF(m_toPoint));
+            item->setPos(toQPointF(m_toPoint));
+            break;
         }
     }
 
@@ -287,10 +291,14 @@ void RevertMovedComponentAction::execute(SceneView& view, Context& context)
 
     for (const auto& item : view.items())
     {
-        if (auto layerView = dynamic_cast<LayerView*>(item))
+        int itemId = -1;
+        if (auto* lv = dynamic_cast<LayerView*>(item)) itemId = lv->id;
+        else if (auto* mv = dynamic_cast<MetalView*>(item)) itemId = mv->id;
+
+        if (itemId == viewId)
         {
-            if (layerView->id == viewId)
-                layerView->setPos(toQPointF(m_fromPoint));
+            item->setPos(toQPointF(m_fromPoint));
+            break;
         }
     }
 
@@ -323,8 +331,12 @@ void ResizedComponentAction::execute(SceneView& view, Context& context)
         {
             if (layerView->id == viewId)
             {
+                // To avoid jumping, we set the position to the top-left corner
+                // and make the internal rectangle relative to (0,0)
                 layerView->setPos(m_toRect.topLeft());
                 layerView->setRect(0, 0, m_toRect.width(), m_toRect.height());
+                layerView->update();
+                break;
             }
         }
     }
@@ -333,9 +345,10 @@ void ResizedComponentAction::execute(SceneView& view, Context& context)
     {
         if (auto rect = dynamic_cast<Rect*>(shape))
         {
+            // Normalize coordinates for the model
             rect->point = Point(-1, m_toRect.x(), m_toRect.y());
-            rect->width = m_toRect.width();
-            rect->height = m_toRect.height();
+            rect->width = std::abs(m_toRect.width());
+            rect->height = std::abs(m_toRect.height());
         }
     }
 }

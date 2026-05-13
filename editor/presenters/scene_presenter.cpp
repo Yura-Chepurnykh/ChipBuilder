@@ -405,16 +405,22 @@ void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& cur
     QRectF normPrev = prev.normalized();
 
     auto modelId = m_context.m_viewToModel[id];
+    std::shared_ptr<AComponent> targetComponent = nullptr;
     for (const auto& component : m_context.m_layout.m_components)
     {
-        if (auto layer = dynamic_cast<Layer*>(component.get()))
-            if (layer->id == modelId) m_selectedComponent = component;
+        if (component->id == modelId) {
+            targetComponent = component;
+            break;
+        }
     }
 
-    auto action = std::make_shared<ResizedComponentAction>(m_selectedComponent, normCurr);
-    auto undoAction = std::make_shared<ResizedComponentAction>(m_selectedComponent, normPrev);
-    auto command = std::make_shared<ResizedComponentCommand>(action, undoAction);
-    m_manager.execute(command, m_context, m_view);
+    if (targetComponent) {
+        auto action = std::make_shared<ResizedComponentAction>(targetComponent, normCurr);
+        auto undoAction = std::make_shared<ResizedComponentAction>(targetComponent, normPrev);
+        auto command = std::make_shared<ResizedComponentCommand>(action, undoAction);
+        m_manager.execute(command, m_context, m_view);
+        syncDRC();
+    }
 }
 
 void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
@@ -431,10 +437,11 @@ void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
                 r->point.y = normCurr.y();
                 r->width = normCurr.width();
                 r->height = normCurr.height();
-                break;
             }
+            break;
         }
     }
+    syncDRC();
 }
 
 ScenePresenter::~ScenePresenter()
