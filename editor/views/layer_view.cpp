@@ -419,22 +419,22 @@ void LayerView::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
         }
         case (ResizeDirection::Left | ResizeDirection::Top):
         {
-            setCursor(Qt::SizeBDiagCursor);
+            setCursor(Qt::SizeFDiagCursor);
             break;
         }
         case (ResizeDirection::Top | ResizeDirection::Right):
         {
-            setCursor(Qt::SizeFDiagCursor);
+            setCursor(Qt::SizeBDiagCursor);
             break;
         }
         case (ResizeDirection::Right | ResizeDirection::Bottom):
         {
-            setCursor(Qt::SizeBDiagCursor);
+            setCursor(Qt::SizeFDiagCursor);
             break;
         }
         case (ResizeDirection::Bottom | ResizeDirection::Left):
         {
-            setCursor(Qt::SizeFDiagCursor);
+            setCursor(Qt::SizeBDiagCursor);
             break;
         }
         default:
