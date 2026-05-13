@@ -2,6 +2,7 @@
 #include "mappers.hpp"
 #include "factories.hpp"
 #include "union_handler.hpp"
+#include "metal_view.hpp"
 #include <unordered_set>
 
 ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
@@ -165,6 +166,11 @@ void ScenePresenter::bindView(QGraphicsItem* view)
         QObject::connect(layerView, &LayerView::lowerRequested, this, &ScenePresenter::handleLowerLayer);
         QObject::connect(layerView, &LayerView::setLevelRequested, this, &ScenePresenter::handleSetLayerLevel);
         qDebug() << "Signals connected for LayerView id:" << layerView->id;
+    }
+    else if (auto metalView = dynamic_cast<MetalView*>(view))
+    {
+        QObject::connect(metalView, &MetalView::geometryChanged, this, &ScenePresenter::handleMetalGeometryChanged);
+        qDebug() << "Signals connected for MetalView id:" << metalView->id;
     }
 }
 
@@ -419,7 +425,42 @@ void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& cur
         auto undoAction = std::make_shared<ResizedComponentAction>(targetComponent, normPrev);
         auto command = std::make_shared<ResizedComponentCommand>(action, undoAction);
         m_manager.execute(command, m_context, m_view);
-        syncDRC();
+    }
+}
+
+void ScenePresenter::handleMetalGeometryChanged(int id)
+{
+    auto modelId = m_context.m_viewToModel[id];
+    
+    MetalView* metalView = nullptr;
+    for (auto* item : m_view.items())
+    {
+        if (auto* mv = dynamic_cast<MetalView*>(item))
+        {
+            if (mv->id == id)
+            {
+                metalView = mv;
+                break;
+            }
+        }
+    }
+    
+    if (!metalView) return;
+
+    for (auto& component : m_context.m_layout.m_components)
+    {
+        if (component->id == modelId)
+        {
+            if (auto poly = dynamic_cast<PolygonShape*>(component->getShape()))
+            {
+                poly->m_points.clear();
+                for (const auto& p : metalView->getPath())
+                {
+                    poly->m_points.push_back(Point(-1, p->x(), p->y()));
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -441,7 +482,6 @@ void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
             break;
         }
     }
-    syncDRC();
 }
 
 ScenePresenter::~ScenePresenter()

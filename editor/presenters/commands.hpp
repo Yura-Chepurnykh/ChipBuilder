@@ -193,4 +193,17 @@ private:
     std::shared_ptr<AComponent> m_componentModel;
 };
 
+class MovePolygonEdgeCommand final : public ICommand
+{
+public:
+    MovePolygonEdgeCommand(int viewId, int edgeIndex, const Point& delta);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    int m_viewId;
+    int m_index; // Start vertex index of the edge
+    Point m_delta;
+};
+
 #endif // COMMANDS_HPP

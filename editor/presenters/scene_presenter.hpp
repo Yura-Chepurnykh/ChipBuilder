@@ -93,6 +93,7 @@ public slots:
     void handleMoved(int, const QPointF&, const QPointF&);
     void handleResized(int, const QRectF&, const QRectF&);
     void handleGeometryChanged(int, const QRectF&);
+    void handleMetalGeometryChanged(int);
 
 public slots:
     void handleMKeyPress();

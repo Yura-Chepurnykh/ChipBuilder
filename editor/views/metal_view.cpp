@@ -1,7 +1,12 @@
 #include "metal_view.hpp"
 #include "id_generator.hpp"
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsSceneHoverEvent>
+#include <QCursor>
+#include <QVector2D>
+#include <QGraphicsScene>
 
-MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m_path(p), m_style(s)
+MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m_style(s), m_path(p)
 {
     m_style.pen.setColor(Qt::magenta);
     m_style.pen.setWidth(30); // Matches grid gap
@@ -11,6 +16,165 @@ MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m
 
     setFlag(QGraphicsItem::ItemIsSelectable);
     setFlag(QGraphicsItem::ItemIsMovable);
+    setAcceptHoverEvents(true);
+}
+
+void MetalView::mousePressEvent(QGraphicsSceneMouseEvent* event)
+{
+    if (m_draggedSegmentIdx != -1 || m_draggedPointIdx != -1)
+    {
+        m_isResizing = true;
+        m_pressPos = event->pos();
+        m_initialPoints.clear();
+        for (const auto& p : m_path)
+            m_initialPoints.push_back(*p);
+        event->accept();
+    }
+    else
+    {
+        QGraphicsItem::mousePressEvent(event);
+    }
+}
+
+void MetalView::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
+{
+    if (m_isResizing)
+    {
+        QPointF delta = event->pos() - m_pressPos;
+        
+        constexpr int gap = 30;
+        auto snap = [gap](qreal val) {
+            return std::round(val / gap) * gap;
+        };
+
+        if (m_draggedSegmentIdx != -1)
+        {
+            prepareGeometryChange();
+            QPointF& p1 = *m_path[m_draggedSegmentIdx - 1];
+            QPointF& p2 = *m_path[m_draggedSegmentIdx];
+            
+            const QPointF& initP1 = m_initialPoints[m_draggedSegmentIdx - 1];
+            const QPointF& initP2 = m_initialPoints[m_draggedSegmentIdx];
+
+            bool isHor = std::abs(initP1.y() - initP2.y()) < 1.0;
+            bool isVer = std::abs(initP1.x() - initP2.x()) < 1.0;
+
+            if (isHor)
+            {
+                qreal newY = snap(initP1.y() + delta.y());
+                p1.setY(newY);
+                p2.setY(newY);
+            }
+            else if (isVer)
+            {
+                qreal newX = snap(initP1.x() + delta.x());
+                p1.setX(newX);
+                p2.setX(newX);
+            }
+            emit geometryChanged(id);
+            update();
+        }
+        else if (m_draggedPointIdx != -1)
+        {
+            prepareGeometryChange();
+            QPointF& p = *m_path[m_draggedPointIdx];
+            const QPointF& initP = m_initialPoints[m_draggedPointIdx];
+            
+            p.setX(snap(initP.x() + delta.x()));
+            p.setY(snap(initP.y() + delta.y()));
+            emit geometryChanged(id);
+            update();
+        }
+        event->accept();
+    }
+    else
+    {
+        QGraphicsItem::mouseMoveEvent(event);
+    }
+}
+
+void MetalView::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+{
+    if (m_isResizing)
+    {
+        m_isResizing = false;
+        event->accept();
+    }
+    else
+    {
+        QGraphicsItem::mouseReleaseEvent(event);
+    }
+}
+
+void MetalView::hoverMoveEvent(QGraphicsSceneHoverEvent* event)
+{
+    QPointF pos = event->pos();
+    m_draggedSegmentIdx = -1;
+    m_draggedPointIdx = -1;
+    setCursor(Qt::ArrowCursor);
+
+    constexpr qreal tolerance = 10.0;
+    qreal halfWidth = m_style.pen.width() / 2.0;
+
+    // First check points (ends)
+    for (int i = 0; i < m_path.size(); ++i)
+    {
+        if (QVector2D(pos - *m_path[i]).length() <= tolerance)
+        {
+            m_draggedPointIdx = i;
+            setCursor(Qt::SizeAllCursor);
+            return;
+        }
+    }
+
+    // Then check segments (sides)
+    for (int i = 1; i < m_path.size(); ++i)
+    {
+        QPointF p1 = *m_path[i-1];
+        QPointF p2 = *m_path[i];
+
+        bool isHor = std::abs(p1.y() - p2.y()) < 1.0;
+        bool isVer = std::abs(p1.x() - p2.x()) < 1.0;
+
+        if (isHor)
+        {
+            qreal minX = std::min(p1.x(), p2.x());
+            qreal maxX = std::max(p1.x(), p2.x());
+            if (pos.x() >= minX - tolerance && pos.x() <= maxX + tolerance)
+            {
+                if (std::abs(pos.y() - (p1.y() - halfWidth)) <= tolerance ||
+                    std::abs(pos.y() - (p1.y() + halfWidth)) <= tolerance ||
+                    std::abs(pos.y() - p1.y()) <= tolerance) // Also allow clicking middle of segment
+                {
+                    setCursor(Qt::SizeVerCursor);
+                    m_draggedSegmentIdx = i;
+                    break;
+                }
+            }
+        }
+        else if (isVer)
+        {
+            qreal minY = std::min(p1.y(), p2.y());
+            qreal maxY = std::max(p1.y(), p2.y());
+            if (pos.y() >= minY - tolerance && pos.y() <= maxY + tolerance)
+            {
+                if (std::abs(pos.x() - (p1.x() - halfWidth)) <= tolerance ||
+                    std::abs(pos.x() - (p1.x() + halfWidth)) <= tolerance ||
+                    std::abs(pos.x() - p1.x()) <= tolerance) // Also allow clicking middle of segment
+                {
+                    setCursor(Qt::SizeHorCursor);
+                    m_draggedSegmentIdx = i;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void MetalView::hoverLeaveEvent(QGraphicsSceneHoverEvent* event)
+{
+    setCursor(Qt::ArrowCursor);
+    QGraphicsItem::hoverLeaveEvent(event);
 }
 
 QRectF MetalView::boundingRect() const
