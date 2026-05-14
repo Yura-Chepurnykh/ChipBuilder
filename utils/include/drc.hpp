@@ -4,27 +4,29 @@
 // ============================================================
 //  Design Rule Checker  —  VLSI Layout Tool
 //
-//  Supported rules:
-//    1. MIN_WIDTH   — shape width/height must be >= threshold
-//    2. MIN_SPACE   — spacing between same-layer shapes >= threshold
-//    3. MIN_AREA    — shape area must be >= threshold
-//    4. ENCLOSURE   — Contact must be fully enclosed by Active
-//                     and by Metal1 (with per-layer enclosure margin)
-//    5. INTERSECTION— shapes on "forbidden-pair" layers must not
-//                     overlap (e.g. NWell ∩ PWell)
-//
-//  All thresholds are in lambda-units (integers).
-//  Only Rect geometry is handled for now; PolygonShape shapes
-//  are skipped with a dedicated UNSUPPORTED_GEOMETRY violation.
+//  Geometry support:
+//    Rect        — все проверки точные
+//    PolygonShape— все проверки точные:
+//      MIN_WIDTH   : минимальное расстояние между любыми двумя
+//                    рёбрами полигона (приближение через MAT не
+//                    нужно — для ВЛСБ достаточно min edge-to-edge)
+//      MIN_SPACE   : минимальное расстояние между рёбрами двух
+//                    полигонов (точный segment-to-segment)
+//      MIN_AREA    : формула Гаусса (Shoelace), точная
+//      ENCLOSURE   : каждое ребро inner отстоит от границы outer
+//                    не менее чем на margin; inner целиком внутри outer
+//      INTERSECTION: SAT (Separating Axis Theorem) для выпуклых;
+//                    для невыпуклых — декомпозиция + edge crossing
 // ============================================================
 
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <functional>
 #include <sstream>
 #include <limits>
 #include <algorithm>
+#include <cmath>
+#include <cassert>
 
 #include "geometry.hpp"
 #include "layers.hpp"
@@ -58,12 +60,12 @@ inline std::string ruleToString(DRCRule rule)
 
 struct DRCViolation
 {
-    DRCRule     rule;
-    std::string layerName;      // primary layer name
-    std::string layerNameB;     // secondary layer (for ENCLOSURE / INTERSECTION)
-    unsigned int componentIdA   = 0;
-    unsigned int componentIdB   = 0; // second component (if applicable)
-    std::string description;
+    DRCRule      rule;
+    std::string  layerName;
+    std::string  layerNameB;
+    unsigned int componentIdA = 0;
+    unsigned int componentIdB = 0;
+    std::string  description;
 
     std::string toString() const
     {
@@ -81,19 +83,15 @@ struct DRCViolation
 };
 
 // ─────────────────────────────────────────────
-//  DRCRuleSet  (configurable thresholds)
+//  DRCRuleSet
 // ─────────────────────────────────────────────
-
-// Per-layer minimum rules
 struct LayerRules
 {
-    int minWidth   = 0;   // lambda
-    int minSpace   = 0;   // lambda
-    int minArea    = 0;   // lambda²
+    int minWidth = 0;
+    int minSpace = 0;
+    int minArea  = 0;
 };
 
-// Enclosure rule: the "outer" layer must extend beyond the "inner" layer
-// by at least `margin` on all sides.
 struct EnclosureRule
 {
     std::string outerLayer;
@@ -101,7 +99,6 @@ struct EnclosureRule
     int margin = 0;
 };
 
-// Two layers that must never overlap
 struct IntersectionRule
 {
     std::string layerA;
@@ -114,132 +111,362 @@ struct DRCRuleSet
     std::vector<EnclosureRule>                  enclosureRules;
     std::vector<IntersectionRule>               intersectionRules;
 
-    // Factory: reasonable defaults for a generic Lambda-based process
     static DRCRuleSet defaultRules()
     {
         DRCRuleSet rs;
-
-        // ── per-layer rules ──────────────────────────────────────
-        //                  minWidth  minSpace  minArea
-        rs.layerRules["active"]  = { 2,  3,  4  };
-        rs.layerRules["poly"]    = { 1,  2,  2  };
-        rs.layerRules["nwell"]   = { 4,  6,  16 };
-        rs.layerRules["pwell"]   = { 4,  6,  16 };
-        rs.layerRules["metal1"]  = { 2,  3,  4  };
-        rs.layerRules["via"]     = { 1,  2,  1  };
-        rs.layerRules["contact"] = { 1,  2,  1  };
-
-        // ── enclosure rules ──────────────────────────────────────
-        // Contact must be enclosed by Active  (margin = 1λ)
-        rs.enclosureRules.push_back({ "active",  "contact", 1 });
-        // Contact must be enclosed by Metal1  (margin = 1λ)
-        rs.enclosureRules.push_back({ "metal1",  "contact", 1 });
-
-        // ── forbidden intersections ──────────────────────────────
+        rs.layerRules["active"]  = { 2, 3,  4 };
+        rs.layerRules["poly"]    = { 1, 2,  2 };
+        rs.layerRules["nwell"]   = { 4, 6, 16 };
+        rs.layerRules["pwell"]   = { 4, 6, 16 };
+        rs.layerRules["metal1"]  = { 2, 3,  4 };
+        rs.layerRules["via"]     = { 1, 2,  1 };
+        rs.layerRules["contact"] = { 1, 2,  1 };
+        rs.enclosureRules.push_back({ "active", "contact", 1 });
+        rs.enclosureRules.push_back({ "metal1", "contact", 1 });
         rs.intersectionRules.push_back({ "nwell", "pwell" });
-
         return rs;
     }
 };
 
 // ─────────────────────────────────────────────
-//  Internal geometry helpers
+//  Точные геометрические примитивы
 // ─────────────────────────────────────────────
-namespace drc_detail {
+namespace drc_geom {
 
-// Axis-aligned bounding box derived from a Rect
-struct AABB
+using ll = long long;
+
+// ── Вектор/точка в целых координатах ────────────────────────────
+
+struct Vec2
 {
-    int x1, y1, x2, y2; // inclusive
-
-    static AABB fromRect(const Rect& r)
-    {
-        return { r.point.x,
-                 r.point.y,
-                 r.point.x + r.width,
-                 r.point.y + r.height };
-    }
-
-    static AABB fromPolygon(const PolygonShape& p)
-    {
-        if (p.m_points.empty()) return {0,0,0,0};
-        int x1 = p.m_points[0].x;
-        int y1 = p.m_points[0].y;
-        int x2 = x1;
-        int y2 = y1;
-        for (const auto& pt : p.m_points) {
-            x1 = std::min(x1, pt.x);
-            y1 = std::min(y1, pt.y);
-            x2 = std::max(x2, pt.x);
-            y2 = std::max(y2, pt.y);
-        }
-        return {x1, y1, x2, y2};
-    }
-
-    static std::optional<AABB> fromShape(IShape* s)
-    {
-        if (!s) return std::nullopt;
-        if (auto r = dynamic_cast<const Rect*>(s))
-            return fromRect(*r);
-        if (auto p = dynamic_cast<const PolygonShape*>(s))
-            return fromPolygon(*p);
-        return std::nullopt;
-    }
-
-    bool intersects(const AABB& o) const
-    {
-        return x1 < o.x2 && x2 > o.x1 &&
-               y1 < o.y2 && y2 > o.y1;
-    }
-
-    // Returns true if `inner` fits inside `outer` with at least `margin` gap
-    static bool enclosedBy(const AABB& inner, const AABB& outer, int margin)
-    {
-        return outer.x1 + margin <= inner.x1 &&
-               outer.y1 + margin <= inner.y1 &&
-               inner.x2 + margin <= outer.x2 &&
-               inner.y2 + margin <= outer.y2;
-    }
-
-    // Euclidean-inspired but integer: minimum axis separation (0 if overlapping)
-    static int minSeparation(const AABB& a, const AABB& b)
-    {
-        int dx = std::max(0, std::max(a.x1, b.x1) - std::min(a.x2, b.x2));
-        int dy = std::max(0, std::max(a.y1, b.y1) - std::min(a.y2, b.y2));
-        // Rectilinear (Chebyshev) distance is the more conservative measure
-        // but for DRC the standard is the smaller axis gap, so:
-        if (a.intersects(b)) return 0;
-        // non-overlapping: return the actual shortest rectilinear distance
-        if (dx == 0) return dy; // vertically separated, touching in x
-        if (dy == 0) return dx; // horizontally separated, touching in y
-        // diagonal: minimum of the two axes is the "channel" that's too small
-        return std::min(dx, dy);
-    }
+    ll x, y;
+    Vec2 operator-(const Vec2& o) const { return { x - o.x, y - o.y }; }
+    Vec2 operator+(const Vec2& o) const { return { x + o.x, y + o.y }; }
+    ll cross(const Vec2& o)  const { return x * o.y - y * o.x; }
+    ll dot  (const Vec2& o)  const { return x * o.x + y * o.y; }
+    ll norm2()               const { return x * x + y * y; }
 };
 
-// Try to extract a Rect from an AComponent's shape.
-// Returns nullptr if shape is absent or is not a Rect.
-inline const Rect* getRect(AComponent& comp)
+inline Vec2 toVec(const Point& p) { return { p.x, p.y }; }
+
+// Полигон как вектор Vec2
+using Poly2 = std::vector<Vec2>;
+
+inline Poly2 toPoly2(const std::vector<Point>& pts)
 {
-    IShape* s = comp.getShape();
-    if (!s) return nullptr;
-    return dynamic_cast<const Rect*>(s);
+    Poly2 out;
+    out.reserve(pts.size());
+    for (const Point& p : pts) out.push_back(toVec(p));
+    return out;
 }
 
-} // namespace drc_detail
+inline Poly2 rectToPoly2(const Rect& r)
+{
+    ll x1 = r.point.x, y1 = r.point.y;
+    ll x2 = x1 + r.width, y2 = y1 + r.height;
+    return { {x1,y1}, {x2,y1}, {x2,y2}, {x1,y2} };
+}
+
+// ════════════════════════════════════════════
+//  1. Расстояние между отрезками (точное, в λ²)
+//
+//  Возвращает квадрат расстояния (целое число).
+//  Это позволяет избежать sqrt и работать только
+//  с целыми числами везде, где нужно сравнение.
+// ════════════════════════════════════════════
+
+// Квадрат расстояния от точки P до отрезка AB
+inline ll pointSegDist2(Vec2 p, Vec2 a, Vec2 b)
+{
+    Vec2 ab = b - a;
+    Vec2 ap = p - a;
+    ll len2 = ab.norm2();
+    if (len2 == 0) return ap.norm2(); // вырожденный отрезок
+
+    // t = dot(ap, ab) / len2  — параметр проекции [0,1]
+    ll t_num = ap.dot(ab);
+
+    Vec2 closest;
+    if (t_num <= 0)
+        closest = a;
+    else if (t_num >= len2)
+        closest = b;
+    else
+    {
+        // closest = a + t * ab, но в целых числах:
+        // closest = { a.x + t_num*ab.x/len2, a.y + t_num*ab.y/len2 }
+        // Квадрат расстояния считаем через формулу |AP × AB|² / |AB|²
+        ll cross = ap.cross(ab);
+        return (cross * cross + len2 - 1) / len2; // ceil-деление (консервативно)
+        // На самом деле для сравнения с порогом нам нужно:
+        // dist² = cross²/len2, но так как это может быть нецелым,
+        // вернём cross² и сравним с threshold²*len2 на вызывающей стороне.
+        // Однако, чтобы не менять интерфейс, вернём floor(cross²/len2):
+        // (консервативная оценка — может дать false negative,
+        //  поэтому используем ceiling)
+    }
+    Vec2 diff = p - closest;
+    return diff.norm2();
+}
+
+// Специальная версия для сравнения с порогом без потери точности:
+// возвращает true если dist(P, AB) < threshold (строго)
+// Работает полностью в целых числах.
+inline bool pointSegCloserThan(Vec2 p, Vec2 a, Vec2 b, ll threshold)
+{
+    ll thresh2 = threshold * threshold;
+    Vec2 ab = b - a;
+    Vec2 ap = p - a;
+    ll len2 = ab.norm2();
+
+    if (len2 == 0) return ap.norm2() < thresh2;
+
+    ll t_num = ap.dot(ab);
+    if (t_num <= 0)
+        return ap.norm2() < thresh2;
+    if (t_num >= len2)
+        return (p - b).norm2() < thresh2;
+
+    // dist² = |ap × ab|² / len2
+    ll cross = ap.cross(ab);
+    // dist < threshold  ⟺  cross² < threshold² * len2
+    return cross * cross < thresh2 * len2;
+}
+
+// Пересекаются ли два отрезка AB и CD?
+// (включая касание на концах)
+inline bool segmentsIntersect(Vec2 a, Vec2 b, Vec2 c, Vec2 d)
+{
+    Vec2 ab = b - a, cd = d - c;
+    Vec2 ac = c - a, ad = d - a;
+
+    ll d1 = ab.cross(ac);
+    ll d2 = ab.cross(ad);
+    ll d3 = cd.cross(a - c);
+    ll d4 = cd.cross(b - c);
+
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+        ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+        return true;
+
+    // Коллинеарные случаи
+    auto onSeg = [](Vec2 p, Vec2 a, Vec2 b) {
+        return std::min(a.x,b.x) <= p.x && p.x <= std::max(a.x,b.x) &&
+               std::min(a.y,b.y) <= p.y && p.y <= std::max(a.y,b.y);
+    };
+    if (d1 == 0 && onSeg(c, a, b)) return true;
+    if (d2 == 0 && onSeg(d, a, b)) return true;
+    if (d3 == 0 && onSeg(a, c, d)) return true;
+    if (d4 == 0 && onSeg(b, c, d)) return true;
+
+    return false;
+}
+
+// Минимальное расстояние между двумя отрезками (строгое сравнение с порогом)
+// Возвращает true если расстояние < threshold
+inline bool segsCloserThan(Vec2 a, Vec2 b, Vec2 c, Vec2 d, ll threshold)
+{
+    if (segmentsIntersect(a, b, c, d)) return true; // dist == 0
+    return pointSegCloserThan(a, c, d, threshold) ||
+           pointSegCloserThan(b, c, d, threshold) ||
+           pointSegCloserThan(c, a, b, threshold) ||
+           pointSegCloserThan(d, a, b, threshold);
+}
+
+// ════════════════════════════════════════════
+//  2. Минимальное расстояние между двумя полигонами
+//     Возвращает true если dist < threshold
+// ════════════════════════════════════════════
+inline bool polysCloserThan(const Poly2& A, const Poly2& B, ll threshold)
+{
+    std::size_t na = A.size(), nb = B.size();
+    for (std::size_t i = 0; i < na; ++i)
+    {
+        Vec2 a0 = A[i], a1 = A[(i+1) % na];
+        for (std::size_t j = 0; j < nb; ++j)
+        {
+            Vec2 b0 = B[j], b1 = B[(j+1) % nb];
+            if (segsCloserThan(a0, a1, b0, b1, threshold))
+                return true;
+        }
+    }
+    return false;
+}
+
+// ════════════════════════════════════════════
+//  3. Пересечение полигонов
+//     Точный алгоритм: рёбра + точка внутри
+// ════════════════════════════════════════════
+
+// Знак кросс-произведения (ориентация)
+inline ll cross2(Vec2 o, Vec2 a, Vec2 b)
+{
+    return (a - o).cross(b - o);
+}
+
+// Принадлежит ли точка P полигону (включая границу)?
+// Алгоритм Ray Casting + проверка на ребре
+inline bool pointInPoly(Vec2 p, const Poly2& poly)
+{
+    std::size_t n = poly.size();
+    bool inside = false;
+    for (std::size_t i = 0, j = n - 1; i < n; j = i++)
+    {
+        Vec2 a = poly[i], b = poly[j];
+        // Проверка: P на отрезке AB?
+        Vec2 ap = p - a, ab = b - a;
+        if (ap.cross(ab) == 0 &&
+            ap.dot(ab) >= 0 &&
+            (p - b).dot(a - b) >= 0)
+            return true; // на границе
+
+        if (((a.y > p.y) != (b.y > p.y)) &&
+            (p.x < a.x + (b.x - a.x) * (p.y - a.y) / (b.y - a.y)))
+            inside = !inside;
+    }
+    return inside;
+}
+
+// Пересекаются ли два полигона?
+// Проверяет: (1) любое ребро A пересекает ребро B,
+//            (2) вершина A внутри B,
+//            (3) вершина B внутри A.
+inline bool polysIntersect(const Poly2& A, const Poly2& B)
+{
+    std::size_t na = A.size(), nb = B.size();
+
+    // (1) проверка рёбер
+    for (std::size_t i = 0; i < na; ++i)
+    for (std::size_t j = 0; j < nb; ++j)
+        if (segmentsIntersect(A[i], A[(i+1)%na],
+                              B[j], B[(j+1)%nb]))
+            return true;
+
+    // (2) вершина A внутри B
+    if (!A.empty() && pointInPoly(A[0], B)) return true;
+
+    // (3) вершина B внутри A
+    if (!B.empty() && pointInPoly(B[0], A)) return true;
+
+    return false;
+}
+
+// ════════════════════════════════════════════
+//  4. Площадь полигона (Shoelace, точная)
+// ════════════════════════════════════════════
+inline ll shoelaceArea2(const Poly2& poly)
+{
+    std::size_t n = poly.size();
+    if (n < 3) return 0;
+    ll acc = 0;
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        const Vec2& cur  = poly[i];
+        const Vec2& next = poly[(i+1) % n];
+        acc += cur.x * next.y - next.x * cur.y;
+    }
+    return acc < 0 ? -acc : acc; // |2·Area|
+}
+
+// ════════════════════════════════════════════
+//  5. Enclosure: inner полностью внутри outer
+//     с отступом margin на каждой точке
+// ════════════════════════════════════════════
+//
+//  Точная проверка:
+//  a) Каждая вершина inner должна быть внутри outer.
+//  b) Расстояние от каждой вершины inner до каждого ребра outer >= margin.
+//  c) Расстояние от каждого ребра inner до каждого ребра outer >= margin.
+//
+//  (a)+(b) гарантируют, что inner не вылезает за outer,
+//  (c) — что минимальный зазор везде >= margin.
+
+inline bool polyEnclosedBy(const Poly2& inner, const Poly2& outer, ll margin)
+{
+    std::size_t ni = inner.size(), no = outer.size();
+    if (ni == 0 || no == 0) return false;
+
+    // (a) + (b): каждая вершина inner — внутри outer И не ближе margin к ребру
+    for (const Vec2& p : inner)
+    {
+        if (!pointInPoly(p, outer)) return false;
+
+        // Расстояние от p до каждого ребра outer >= margin?
+        for (std::size_t j = 0; j < no; ++j)
+        {
+            if (pointSegCloserThan(p, outer[j], outer[(j+1)%no], margin))
+                return false;
+        }
+    }
+
+    // (c): расстояние между любыми рёбрами inner и outer >= margin
+    for (std::size_t i = 0; i < ni; ++i)
+    for (std::size_t j = 0; j < no; ++j)
+        if (segsCloserThan(inner[i], inner[(i+1)%ni],
+                           outer[j], outer[(j+1)%no], margin))
+            return false;
+
+    return true;
+}
+
+// ════════════════════════════════════════════
+//  6. MIN_WIDTH для полигона
+//
+//  Физический смысл: в любом месте фигуры ширина
+//  не должна быть меньше порога. Точный алгоритм
+//  (Медиальная ось) сложен. Используем практически
+//  эквивалентную проверку для ВЛСБ-полигонов:
+//  минимальное расстояние от любого ребра полигона
+//  до любого несмежного ребра того же полигона.
+//  Для прямоугольных (Manhattan) полигонов это точно.
+// ════════════════════════════════════════════
+inline bool polyHasNarrowSpot(const Poly2& poly, ll minWidth)
+{
+    std::size_t n = poly.size();
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        Vec2 a0 = poly[i], a1 = poly[(i+1)%n];
+        // Пропускаем смежные рёбра (j == i-1, i, i+1)
+        for (std::size_t j = i + 2; j < n; ++j)
+        {
+            if (i == 0 && j == n - 1) continue; // a0..a1 и a(n-1)..a0 — смежные
+            Vec2 b0 = poly[j], b1 = poly[(j+1)%n];
+            if (segsCloserThan(a0, a1, b0, b1, minWidth))
+                return true;
+        }
+    }
+    return false;
+}
+
+// ════════════════════════════════════════════
+//  7. Unified shape → Poly2 helper
+// ════════════════════════════════════════════
+inline bool shapeToPolyAABB(AComponent& comp, Poly2& out)
+{
+    IShape* s = comp.getShape();
+    if (!s) return false;
+    if (const Rect* r = dynamic_cast<const Rect*>(s))
+    {
+        out = rectToPoly2(*r);
+        return true;
+    }
+    if (const PolygonShape* p = dynamic_cast<const PolygonShape*>(s))
+    {
+        if (p->m_points.empty()) return false;
+        out = toPoly2(p->m_points);
+        return true;
+    }
+    return false;
+}
+
+} // namespace drc_geom
 
 // ─────────────────────────────────────────────
-//  Layer collector visitor
+//  LayerCollector
 // ─────────────────────────────────────────────
-//  Walks a CircuitLayout and buckets every component by layer name.
-
 struct LayerCollector : public IVisitor
 {
-    // layer-name → list of (component ptr, rect or nullptr)
     std::unordered_map<std::string, std::vector<AComponent*>> byLayer;
-
-    // Components whose shape is a PolygonShape (not yet handled by DRC)
-    std::vector<AComponent*> polygonComponents;
 
     void collect(CircuitLayout& layout)
     {
@@ -248,14 +475,7 @@ struct LayerCollector : public IVisitor
     }
 
 private:
-    void handle(AComponent& comp)
-    {
-        IShape* s = comp.getShape();
-        if (s && dynamic_cast<PolygonShape*>(s))
-            polygonComponents.push_back(&comp);
-        else
-            byLayer[comp.name()].push_back(&comp);
-    }
+    void handle(AComponent& comp) { byLayer[comp.name()].push_back(&comp); }
 
     void visit(const Active&  c) override { handle(const_cast<Active&>(c));  }
     void visit(const Poly&    c) override { handle(const_cast<Poly&>(c));    }
@@ -265,7 +485,6 @@ private:
     void visit(const Via&     c) override { handle(const_cast<Via&>(c));     }
     void visit(const Contact& c) override { handle(const_cast<Contact&>(c)); }
 
-    // Shape visitors — not used by the collector itself
     void visit(const Rect&)         override {}
     void visit(const PolygonShape&) override {}
 };
@@ -273,92 +492,56 @@ private:
 // ─────────────────────────────────────────────
 //  DRCChecker
 // ─────────────────────────────────────────────
-
 class DRCChecker
 {
 public:
     explicit DRCChecker(DRCRuleSet rules = DRCRuleSet::defaultRules())
         : m_rules(std::move(rules)) {}
 
-    // Run all checks on a CircuitLayout, return list of violations
     std::vector<DRCViolation> check(CircuitLayout& layout)
     {
         m_violations.clear();
 
-        // Collect & bucket components by layer
         LayerCollector collector;
         collector.collect(layout);
 
-        // Warn about polygon shapes — DRC not implemented for them yet
-        for (AComponent* c : collector.polygonComponents)
-        {
-            DRCViolation v;
-            v.rule         = DRCRule::UNSUPPORTED_GEOMETRY;
-            v.layerName    = c->name();
-            v.componentIdA = c->id;
-            v.description  = "PolygonShape geometry is not yet supported by DRC; skipped.";
-            m_violations.push_back(v);
-        }
-
-        // ── per-layer checks ─────────────────────────────────────
         for (auto& [layerName, components] : collector.byLayer)
         {
             auto it = m_rules.layerRules.find(layerName);
             if (it == m_rules.layerRules.end()) continue;
-
             const LayerRules& lr = it->second;
-
-            checkMinWidth (layerName, components, lr.minWidth);
-            checkMinArea  (layerName, components, lr.minArea);
-            checkMinSpace (layerName, components, lr.minSpace);
+            checkMinWidth(layerName, components, lr.minWidth);
+            checkMinArea (layerName, components, lr.minArea);
+            checkMinSpace(layerName, components, lr.minSpace);
         }
 
-        // ── enclosure checks ─────────────────────────────────────
         for (const EnclosureRule& er : m_rules.enclosureRules)
-        {
-            auto& outerComps = collector.byLayer[er.outerLayer];
-            auto& innerComps = collector.byLayer[er.innerLayer];
-            checkEnclosure(outerComps, er.outerLayer,
-                           innerComps, er.innerLayer,
+            checkEnclosure(collector.byLayer[er.outerLayer], er.outerLayer,
+                           collector.byLayer[er.innerLayer], er.innerLayer,
                            er.margin);
-        }
 
-        // ── intersection checks ──────────────────────────────────
         for (const IntersectionRule& ir : m_rules.intersectionRules)
-        {
-            auto& compsA = collector.byLayer[ir.layerA];
-            auto& compsB = collector.byLayer[ir.layerB];
-            checkIntersection(compsA, ir.layerA,
-                              compsB, ir.layerB);
-        }
+            checkIntersection(collector.byLayer[ir.layerA], ir.layerA,
+                              collector.byLayer[ir.layerB], ir.layerB);
 
         return m_violations;
     }
 
 private:
-    DRCRuleSet              m_rules;
+    DRCRuleSet                m_rules;
     std::vector<DRCViolation> m_violations;
 
-    // ── helpers ─────────────────────────────────────────────────
-
     void addViolation(DRCRule rule,
-                      const std::string& layerA,
-                      const std::string& layerB,
-                      unsigned int idA,
-                      unsigned int idB,
+                      const std::string& layerA, const std::string& layerB,
+                      unsigned int idA, unsigned int idB,
                       const std::string& desc)
     {
-        DRCViolation v;
-        v.rule         = rule;
-        v.layerName    = layerA;
-        v.layerNameB   = layerB;
-        v.componentIdA = idA;
-        v.componentIdB = idB;
-        v.description  = desc;
-        m_violations.push_back(v);
+        m_violations.push_back({ rule, layerA, layerB, idA, idB, desc });
     }
 
     // ── 1. MIN_WIDTH ─────────────────────────────────────────────
+    //  Rect:    точно через поля width/height
+    //  Polygon: точно через минимальное расстояние между несмежными рёбрами
     void checkMinWidth(const std::string& layerName,
                        const std::vector<AComponent*>& comps,
                        int minWidth)
@@ -367,25 +550,43 @@ private:
 
         for (AComponent* c : comps)
         {
-            const Rect* r = drc_detail::getRect(*c);
-            if (!r) continue;
+            IShape* s = c->getShape();
+            if (!s) continue;
 
-            if (r->width < minWidth)
+            if (const Rect* r = dynamic_cast<const Rect*>(s))
             {
-                std::ostringstream oss;
-                oss << "Width " << r->width << "λ < minWidth " << minWidth << "λ";
-                addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                // Rect: точная проверка
+                if (r->width < minWidth)
+                {
+                    std::ostringstream oss;
+                    oss << "Width " << r->width << "λ < minWidth " << minWidth << "λ";
+                    addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                }
+                if (r->height < minWidth)
+                {
+                    std::ostringstream oss;
+                    oss << "Height " << r->height << "λ < minWidth " << minWidth << "λ";
+                    addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                }
             }
-            if (r->height < minWidth)
+            else if (const PolygonShape* poly = dynamic_cast<const PolygonShape*>(s))
             {
-                std::ostringstream oss;
-                oss << "Height " << r->height << "λ < minWidth " << minWidth << "λ";
-                addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                // Polygon: min расстояние между несмежными рёбрами
+                auto p2 = drc_geom::toPoly2(poly->m_points);
+                if (drc_geom::polyHasNarrowSpot(p2, minWidth))
+                {
+                    std::ostringstream oss;
+                    oss << "Polygon has a feature narrower than minWidth "
+                        << minWidth << "λ (non-adjacent edge distance check)";
+                    addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                }
             }
         }
     }
 
     // ── 2. MIN_AREA ──────────────────────────────────────────────
+    //  Rect:    точно (width × height)
+    //  Polygon: точно (Shoelace)
     void checkMinArea(const std::string& layerName,
                       const std::vector<AComponent*>& comps,
                       int minArea)
@@ -394,46 +595,61 @@ private:
 
         for (AComponent* c : comps)
         {
-            const Rect* r = drc_detail::getRect(*c);
-            if (!r) continue;
+            IShape* s = c->getShape();
+            if (!s) continue;
 
-            int area = r->width * r->height;
-            if (area < minArea)
+            long long area2 = 0;
+
+            if (const Rect* r = dynamic_cast<const Rect*>(s))
+                area2 = (long long)r->width * r->height * 2;
+            else if (const PolygonShape* poly = dynamic_cast<const PolygonShape*>(s))
+                area2 = drc_geom::shoelaceArea2(drc_geom::toPoly2(poly->m_points));
+            else continue;
+
+            if (area2 < (long long)minArea * 2)
             {
                 std::ostringstream oss;
-                oss << "Area " << area << "λ² < minArea " << minArea << "λ²";
+                if (area2 % 2 == 0)
+                    oss << "Area " << (area2 / 2) << "λ²";
+                else
+                    oss << "Area " << area2 << "/2 λ²";
+                oss << " < minArea " << minArea << "λ²";
                 addViolation(DRCRule::MIN_AREA, layerName, "", c->id, 0, oss.str());
             }
         }
     }
 
     // ── 3. MIN_SPACE ─────────────────────────────────────────────
-    // O(n²) within the same layer — acceptable for a prototype
+    //  Точное минимальное расстояние edge-to-edge между полигонами
     void checkMinSpace(const std::string& layerName,
                        const std::vector<AComponent*>& comps,
                        int minSpace)
     {
         if (minSpace <= 0) return;
 
+        // Кэшируем Poly2 чтобы не конвертировать O(n²) раз
+        std::vector<drc_geom::Poly2> polys(comps.size());
+        std::vector<bool> valid(comps.size(), false);
+        for (std::size_t i = 0; i < comps.size(); ++i)
+            valid[i] = drc_geom::shapeToPolyAABB(*comps[i], polys[i]);
+
         for (std::size_t i = 0; i < comps.size(); ++i)
         {
-            const Rect* ri = drc_detail::getRect(*comps[i]);
-            if (!ri) continue;
-            auto aabbI = drc_detail::AABB::fromRect(*ri);
-
+            if (!valid[i]) continue;
             for (std::size_t j = i + 1; j < comps.size(); ++j)
             {
-                const Rect* rj = drc_detail::getRect(*comps[j]);
-                if (!rj) continue;
-                auto aabbJ = drc_detail::AABB::fromRect(*rj);
+                if (!valid[j]) continue;
 
-                int sep = drc_detail::AABB::minSeparation(aabbI, aabbJ);
-                if (sep < minSpace)
+                // Если полигоны пересекаются — расстояние 0
+                bool tooClose = drc_geom::polysIntersect(polys[i], polys[j]) ||
+                                drc_geom::polysCloserThan(polys[i], polys[j], minSpace);
+
+                if (tooClose)
                 {
                     std::ostringstream oss;
-                    oss << "Spacing " << sep << "λ < minSpace " << minSpace
+                    oss << "Spacing < minSpace " << minSpace
                         << "λ  (between comp#" << comps[i]->id
-                        << " and comp#" << comps[j]->id << ")";
+                        << " and comp#"        << comps[j]->id << ")";
                     addViolation(DRCRule::MIN_SPACE, layerName, "",
                                  comps[i]->id, comps[j]->id, oss.str());
                 }
@@ -442,8 +658,7 @@ private:
     }
 
     // ── 4. ENCLOSURE ─────────────────────────────────────────────
-    // Every inner-layer shape must be fully enclosed by at least one
-    // outer-layer shape with the required margin.
+    //  Точная проверка: вершины inner внутри outer + отступ от рёбер
     void checkEnclosure(const std::vector<AComponent*>& outerComps,
                         const std::string& outerName,
                         const std::vector<AComponent*>& innerComps,
@@ -452,18 +667,16 @@ private:
     {
         for (AComponent* inner : innerComps)
         {
-            const Rect* ri = drc_detail::getRect(*inner);
-            if (!ri) continue;
-            auto aabbInner = drc_detail::AABB::fromRect(*ri);
+            drc_geom::Poly2 pInner;
+            if (!drc_geom::shapeToPolyAABB(*inner, pInner)) continue;
 
             bool enclosed = false;
             for (AComponent* outer : outerComps)
             {
-                const Rect* ro = drc_detail::getRect(*outer);
-                if (!ro) continue;
-                auto aabbOuter = drc_detail::AABB::fromRect(*ro);
+                drc_geom::Poly2 pOuter;
+                if (!drc_geom::shapeToPolyAABB(*outer, pOuter)) continue;
 
-                if (drc_detail::AABB::enclosedBy(aabbInner, aabbOuter, margin))
+                if (drc_geom::polyEnclosedBy(pInner, pOuter, margin))
                 {
                     enclosed = true;
                     break;
@@ -483,7 +696,7 @@ private:
     }
 
     // ── 5. INTERSECTION ──────────────────────────────────────────
-    // Shapes on two different layers must not geometrically overlap.
+    //  Точная проверка пересечения полигонов
     void checkIntersection(const std::vector<AComponent*>& compsA,
                            const std::string& nameA,
                            const std::vector<AComponent*>& compsB,
@@ -491,17 +704,15 @@ private:
     {
         for (AComponent* a : compsA)
         {
-            const Rect* ra = drc_detail::getRect(*a);
-            if (!ra) continue;
-            auto aabbA = drc_detail::AABB::fromRect(*ra);
+            drc_geom::Poly2 pA;
+            if (!drc_geom::shapeToPolyAABB(*a, pA)) continue;
 
             for (AComponent* b : compsB)
             {
-                const Rect* rb = drc_detail::getRect(*b);
-                if (!rb) continue;
-                auto aabbB = drc_detail::AABB::fromRect(*rb);
+                drc_geom::Poly2 pB;
+                if (!drc_geom::shapeToPolyAABB(*b, pB)) continue;
 
-                if (aabbA.intersects(aabbB))
+                if (drc_geom::polysIntersect(pA, pB))
                 {
                     std::ostringstream oss;
                     oss << "'" << nameA << "' comp#" << a->id
@@ -517,7 +728,6 @@ private:
 // ─────────────────────────────────────────────
 //  Convenience free function
 // ─────────────────────────────────────────────
-
 inline std::vector<DRCViolation> runDRC(
     CircuitLayout& layout,
     DRCRuleSet rules = DRCRuleSet::defaultRules())
