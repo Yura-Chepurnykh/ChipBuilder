@@ -3,11 +3,13 @@
 #include "factories.hpp"
 #include "union_handler.hpp"
 #include "metal_view.hpp"
+#include "drc.hpp"
 #include <unordered_set>
 
-ScenePresenter::ScenePresenter(Context& context, SceneView& view) noexcept :
+ScenePresenter::ScenePresenter(Context& context, SceneView& view, QListWidget* drcSidebar)  :
     m_context(context),
     m_view(view),
+    m_drcSidebar(drcSidebar),
     m_strategy(nullptr),
     m_selectedComponent(nullptr),
     m_builder(nullptr)
@@ -75,6 +77,7 @@ void ScenePresenter::handleDeleteKeyPress()
             m_manager.execute(groupCommand, m_context, m_view);
         }
     }
+    syncDRC();
 }
 
 void ScenePresenter::handleMKeyPress()
@@ -200,6 +203,7 @@ void ReleaseStrategy::handle(const QPointF& p)
     m_presenter.m_manager.execute(command, m_presenter.m_context, m_presenter.m_view);
 
     m_presenter.bindView(view);
+    m_presenter.syncDRC();
     
     m_presenter.m_builder = nullptr;
 }
@@ -226,6 +230,7 @@ void DoubleClickStrategy::handle(const QPointF& p)
     m_presenter.m_manager.execute(command, m_presenter.m_context, m_presenter.m_view);
 
     m_presenter.bindView(view);
+    m_presenter.syncDRC();
     
     m_presenter.m_builder = nullptr;
 }
@@ -233,11 +238,57 @@ void DoubleClickStrategy::handle(const QPointF& p)
 void ScenePresenter::handleUndoPress()
 {
     m_manager.undo(m_view, m_context);
+    syncDRC();
 }
 
 void ScenePresenter::handleRedoPress()
 {
     m_manager.redo(m_view, m_context);
+    syncDRC();
+}
+
+void ScenePresenter::syncDRC()
+{
+    if (m_drcSidebar) m_drcSidebar->clear();
+
+    // 1. Reset all views
+    for (auto* item : m_view.items()) {
+        if (auto* layer = dynamic_cast<LayerView*>(item)) {
+            layer->setDRCViolated(false);
+        } else if (auto* metal = dynamic_cast<MetalView*>(item)) {
+            metal->setDRCViolated(false);
+        }
+    }
+
+    // 2. Run DRC
+    auto violations = runDRC(m_context.m_layout);
+
+    // 3. Highlight violations and show messages
+    for (const auto& v : violations) {
+        if (m_drcSidebar) {
+            auto* item = new QListWidgetItem(QString::fromStdString(v.toString()));
+            item->setForeground(Qt::red);
+            m_drcSidebar->addItem(item);
+        }
+        
+        auto highlight = [&](unsigned int modelId) {
+            if (modelId == 0) return;
+            auto it = m_context.m_modelToView.find(modelId);
+            if (it != m_context.m_modelToView.end()) {
+                int viewId = it->second;
+                for (auto* item : m_view.items()) {
+                    if (auto* layer = dynamic_cast<LayerView*>(item)) {
+                        if (layer->id == viewId) layer->setDRCViolated(true);
+                    } else if (auto* metal = dynamic_cast<MetalView*>(item)) {
+                        if (metal->id == viewId) metal->setDRCViolated(true);
+                    }
+                }
+            }
+        };
+
+        highlight(v.componentIdA);
+        highlight(v.componentIdB);
+    }
 }
 
 void ScenePresenter::handleRectSelectionTriggered()
@@ -403,6 +454,7 @@ void ScenePresenter::handleMoved(int id, const QPointF& prev, const QPointF& cur
     auto action = std::make_shared<MovedComponentAction>(m_selectedComponent, toPoint(curr));
     auto command = std::make_shared<MovedComponentCommand>(action, undoAction);
     m_manager.execute(command, m_context, m_view);
+    syncDRC();
 }
 
 void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& curr)
@@ -425,6 +477,7 @@ void ScenePresenter::handleResized(int id, const QRectF& prev, const QRectF& cur
         auto undoAction = std::make_shared<ResizedComponentAction>(targetComponent, normPrev);
         auto command = std::make_shared<ResizedComponentCommand>(action, undoAction);
         m_manager.execute(command, m_context, m_view);
+        syncDRC();
     }
 }
 
@@ -454,14 +507,16 @@ void ScenePresenter::handleMetalGeometryChanged(int id)
             if (auto poly = dynamic_cast<PolygonShape*>(component->getShape()))
             {
                 poly->m_points.clear();
+                QPointF offset = metalView->pos();
                 for (const auto& p : metalView->getPath())
                 {
-                    poly->m_points.push_back(Point(-1, p->x(), p->y()));
+                    poly->m_points.push_back(Point(-1, p->x() + offset.x(), p->y() + offset.y()));
                 }
             }
             break;
         }
     }
+    syncDRC();
 }
 
 void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
@@ -482,6 +537,7 @@ void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
             break;
         }
     }
+    syncDRC();
 }
 
 ScenePresenter::~ScenePresenter()

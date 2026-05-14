@@ -207,7 +207,11 @@ void MetalView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     Q_UNUSED(widget);
 
     QPen pen = m_style.pen;
-    if (isSelected())
+    if (m_drcViolated)
+    {
+        pen.setColor(QColor(255, 0, 0, 180)); // Red
+    }
+    else if (isSelected())
     {
         pen.setColor(QColor(173, 216, 230)); // Light Blue
     }
@@ -220,6 +224,16 @@ void MetalView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
         for (int i = 1; i < m_path.size(); ++i)
             path.lineTo(*m_path[i]);
     }
+    
+    if (m_drcViolated) {
+        QPainterPathStroker stroker;
+        stroker.setWidth(m_style.pen.width());
+        stroker.setCapStyle(m_style.pen.capStyle());
+        stroker.setJoinStyle(m_style.pen.joinStyle());
+        QPainterPath stroke = stroker.createStroke(path);
+        painter->fillPath(stroke, QColor(255, 0, 0, 150)); // More opaque red
+    }
+    
     painter->drawPath(path);
 
     if (isSelected())

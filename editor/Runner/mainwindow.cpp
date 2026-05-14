@@ -82,15 +82,36 @@ MainWindow::MainWindow(QWidget *parent)
     m_view = new View(m_sceneView);
     m_view->setScene(m_sceneView);
 
+    m_drcSidebar = new QListWidget();
+    m_drcSidebar->setFixedWidth(250);
+    m_drcSidebar->setStyleSheet(R"(
+        QListWidget {
+            background-color: #252526;
+            color: #cccccc;
+            border-left: 1px solid #454545;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+        }
+        QListWidget::item {
+            padding: 5px;
+            border-bottom: 1px solid #333333;
+        }
+        QListWidget::item:selected {
+            background-color: #094771;
+            color: #ffffff;
+        }
+    )");
+
     QHBoxLayout* mainLayout = new QHBoxLayout();
     mainLayout->addWidget(m_view, 1);
+    mainLayout->addWidget(m_drcSidebar, 0);
     mainLayout->setContentsMargins(0,0,0,0);
     mainLayout->setSpacing(0);
 
     QWidget* centralWidget = new QWidget();
     centralWidget->setLayout(mainLayout);
 
-    m_scenePresenter = new ScenePresenter(*m_context, *m_sceneView);
+    m_scenePresenter = new ScenePresenter(*m_context, *m_sceneView, m_drcSidebar);
     m_toolbarPresenter = new ToolbarPresenter(m_toolbar);
 
     connect(m_menuBarPresenter, &MenuBarPresenter::rectSelectionTriggered, m_scenePresenter, &ScenePresenter::handleRectSelectionTriggered);

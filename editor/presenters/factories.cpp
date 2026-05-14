@@ -4,11 +4,16 @@ QGraphicsItem* ViewFactory::create(IShape* shape, Style style, const QString& na
 {
     if (auto r = dynamic_cast<Rect*>(shape); r != nullptr)
     {
-        return new LayerView(toQRectF(*r), style, name);
+        auto view = new LayerView(toQRectF(*r), style, name);
+        view->setPos(toQPointF(r->point));
+        return view;
     }
     else if (auto m = dynamic_cast<PolygonShape*>(shape); m != nullptr)
     {
-        return new MetalView(toQSharedPolygon(*m), style);
+        auto view = new MetalView(toQSharedPolygon(*m), style);
+        if (!m->m_points.empty())
+            view->setPos(toQPointF(m->m_points[0]));
+        return view;
     }
     return nullptr;
 }

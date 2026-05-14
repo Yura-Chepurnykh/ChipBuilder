@@ -14,6 +14,7 @@
 #include "id_generator.hpp"
 #include <QObject>
 #include <QGraphicsItemGroup>
+#include <QListWidget>
 
 class ScenePresenter;
 
@@ -73,7 +74,7 @@ class ScenePresenter : public QObject
     Q_OBJECT
 
 public:
-    ScenePresenter(Context&, SceneView&) noexcept;
+    ScenePresenter(Context& context, SceneView& view, QListWidget* drcSidebar);
     ~ScenePresenter();
     void setState(std::unique_ptr<IStrategy>);
     void handle(const QPointF&);
@@ -107,6 +108,8 @@ public slots:
 
     void bindView(QGraphicsItem*);
 
+    void syncDRC();
+
     void handleRectSelectionTriggered();
     void handleLassoSelectionTriggered();
     void handlePanningTriggered();
@@ -118,6 +121,7 @@ public slots:
 public:
     Context& m_context;
     SceneView& m_view;
+    QListWidget* m_drcSidebar;
     std::unique_ptr<IStrategy> m_strategy;
     std::shared_ptr<AComponent> m_selectedComponent;
     std::unique_ptr<IShapeBuilder> m_builder;

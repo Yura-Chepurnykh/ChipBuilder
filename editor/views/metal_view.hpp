@@ -27,6 +27,7 @@ public:
     int id;
 
     QVector<std::shared_ptr<QPointF>> getPath() const { return m_path; }
+    void setDRCViolated(bool violated) { m_drcViolated = violated; update(); }
 
 signals:
     void geometryChanged(int); // Emitted when points move
@@ -46,6 +47,7 @@ protected:
 private:
     Style m_style;
     QVector<std::shared_ptr<QPointF>> m_path;
+    bool m_drcViolated = false;
 
     int m_draggedSegmentIdx = -1; // -1 if not dragging a segment
     int m_draggedPointIdx = -1;   // -1 if not dragging a point

@@ -19,6 +19,8 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+#include <QListWidget>
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -37,5 +39,6 @@ private:
     MenuBarPresenter* m_menuBarPresenter;
     MenuBar* m_menuBar;
     View* m_view;
+    QListWidget* m_drcSidebar;
 };
 #endif // MAINWINDOW_H

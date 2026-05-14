@@ -45,6 +45,7 @@ public:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
     void setRect(qreal x, qreal y, qreal w, qreal h);
+    void setDRCViolated(bool violated) { m_drcViolated = violated; update(); }
 
 signals:
     void press(int);
@@ -66,6 +67,7 @@ public:
     QRectF m_rect, m_prevRect;
     QColor m_baseColor;
     Style m_style;
+    bool m_drcViolated = false;
 };
 
 #endif // LAYER_VIEW_H

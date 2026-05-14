@@ -31,7 +31,11 @@ void LayerView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
-    painter->fillRect(m_rect, QColor(m_style.background));
+    if (m_drcViolated) {
+        painter->fillRect(m_rect, QColor(255, 0, 0, 200)); // Brighter red
+    } else {
+        painter->fillRect(m_rect, QColor(m_style.background));
+    }
     
     QPen pen = m_style.pen;
 
