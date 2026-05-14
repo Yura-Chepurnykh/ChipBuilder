@@ -6,10 +6,15 @@
 #include <QVector2D>
 #include <QGraphicsScene>
 
-MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m_style(s), m_path(p)
+#include <QMenu>
+#include <QInputDialog>
+#include <QGraphicsSceneContextMenuEvent>
+
+MetalView::MetalView(QSharedPolygon p, Style s, int thickness) : 
+    id(IdGenerator::generate()), m_style(s), m_path(p), m_thickness(thickness)
 {
     m_style.pen.setColor(Qt::magenta);
-    m_style.pen.setWidth(30); // Matches grid gap
+    m_style.pen.setWidth(m_thickness * 30); // lambda to pixels
     m_style.pen.setStyle(Qt::SolidLine);
     m_style.pen.setJoinStyle(Qt::MiterJoin);
     m_style.pen.setCapStyle(Qt::FlatCap);
@@ -17,6 +22,34 @@ MetalView::MetalView(QSharedPolygon p, Style s) : id(IdGenerator::generate()), m
     setFlag(QGraphicsItem::ItemIsSelectable);
     setFlag(QGraphicsItem::ItemIsMovable);
     setAcceptHoverEvents(true);
+}
+
+void MetalView::setThickness(int thickness)
+{
+    prepareGeometryChange();
+    m_thickness = thickness;
+    m_style.pen.setWidth(m_thickness * 30);
+    update();
+}
+
+void MetalView::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
+{
+    QMenu menu;
+    QAction *setThicknessAction = menu.addAction("Set Thickness...");
+    
+    QAction *selectedAction = menu.exec(event->screenPos());
+    
+    if (selectedAction == setThicknessAction)
+    {
+        bool ok;
+        int newThickness = QInputDialog::getInt(nullptr, "Set Metal Thickness",
+                                            "Thickness (lambda):", m_thickness, 1, 20, 1, &ok);
+        if (ok)
+        {
+            emit thicknessChanged(id, newThickness);
+        }
+    }
+    event->accept();
 }
 
 void MetalView::mousePressEvent(QGraphicsSceneMouseEvent* event)

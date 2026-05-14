@@ -21,7 +21,7 @@ class MetalView : public QObject, public QGraphicsItem
 public:
     using QSharedPolygon = QVector<std::shared_ptr<QPointF>>;
 
-    MetalView(QSharedPolygon, Style);
+    MetalView(QSharedPolygon, Style, int thickness = 1);
     ~MetalView() = default;
 
     int id;
@@ -29,8 +29,12 @@ public:
     QVector<std::shared_ptr<QPointF>> getPath() const { return m_path; }
     void setDRCViolated(bool violated) { m_drcViolated = violated; update(); }
 
+    void setThickness(int thickness);
+    int thickness() const { return m_thickness; }
+
 signals:
     void geometryChanged(int); // Emitted when points move
+    void thicknessChanged(int, int); // id, newThickness
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
@@ -43,10 +47,12 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
     void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
     void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
 
 private:
     Style m_style;
     QVector<std::shared_ptr<QPointF>> m_path;
+    int m_thickness = 1;
     bool m_drcViolated = false;
 
     int m_draggedSegmentIdx = -1; // -1 if not dragging a segment

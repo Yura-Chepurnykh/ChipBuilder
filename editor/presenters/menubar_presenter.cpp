@@ -194,7 +194,7 @@ void MenuBarPresenter::loadFromFile(const std::string& currentPath)
                 auto styleOpt = StyleModel().getStyle(typeid(*component));
                 if (styleOpt)
                 {
-                    auto viewItem = ViewFactory::create(shape, *styleOpt, QString::fromStdString(component->name()));
+                    auto viewItem = ViewFactory::create(component.get(), *styleOpt);
                     m_sceneView.addItem(viewItem);
                     emit viewCreated(viewItem);
 

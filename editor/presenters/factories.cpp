@@ -1,4 +1,5 @@
 #include "factories.hpp"
+#include "layers.hpp"
 
 QGraphicsItem* ViewFactory::create(IShape* shape, Style style, const QString& name)
 {
@@ -16,4 +17,20 @@ QGraphicsItem* ViewFactory::create(IShape* shape, Style style, const QString& na
         return view;
     }
     return nullptr;
+}
+
+QGraphicsItem* ViewFactory::create(AComponent* component, Style style)
+{
+    if (!component) return nullptr;
+    
+    if (auto metal = dynamic_cast<Metal1*>(component)) {
+        if (auto poly = dynamic_cast<PolygonShape*>(metal->getShape())) {
+            auto view = new MetalView(toQSharedPolygon(*poly), style, metal->thickness);
+            if (!poly->m_points.empty())
+                view->setPos(toQPointF(poly->m_points[0]));
+            return view;
+        }
+    }
+    
+    return create(component->getShape(), style, QString::fromStdString(component->name()));
 }

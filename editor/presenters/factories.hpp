@@ -13,6 +13,7 @@ class ViewFactory
 {
 public:
     static QGraphicsItem* create(IShape* shape, Style style, const QString& name = "");
+    static QGraphicsItem* create(class AComponent* component, Style style);
 };
 
 #endif // FACTORIES_HPP

@@ -369,3 +369,42 @@ void ResizedComponentAction::execute(SceneView& view, Context& context)
         }
     }
 }
+
+ChangeMetalThicknessCommand::ChangeMetalThicknessCommand(std::shared_ptr<IAction> action, std::shared_ptr<IAction> undoAction) :
+    m_action(action), m_undoAction(undoAction) { }
+
+void ChangeMetalThicknessCommand::execute(SceneView& view, Context& context)
+{
+    m_action->execute(view, context);
+}
+
+void ChangeMetalThicknessCommand::undo(SceneView& view, Context& context)
+{
+    m_undoAction->execute(view, context);
+}
+
+ChangeMetalThicknessAction::ChangeMetalThicknessAction(std::shared_ptr<AComponent> component, int thickness) :
+    m_componentModel(component), m_thickness(thickness) { }
+
+void ChangeMetalThicknessAction::execute(SceneView& view, Context& context)
+{
+    auto viewId = context.m_modelToView[m_componentModel->id];
+
+    for (const auto& item : view.items())
+    {
+        if (auto* mv = dynamic_cast<MetalView*>(item))
+        {
+            if (mv->id == viewId)
+            {
+                mv->setThickness(m_thickness);
+                mv->update();
+                break;
+            }
+        }
+    }
+
+    if (auto* metal = dynamic_cast<Metal1*>(m_componentModel.get()))
+    {
+        metal->thickness = m_thickness;
+    }
+}

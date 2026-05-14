@@ -122,7 +122,16 @@ class Active final : public CRTP<Active> { public: using CRTP<Active>::CRTP; std
 class Poly final : public CRTP<Poly> { public: using CRTP<Poly>::CRTP; std::string name() const override { return "poly"; } };
 class NWell final : public CRTP<NWell> { public: using CRTP<NWell>::CRTP; std::string name() const override { return "nwell"; } };
 class PWell final : public CRTP<PWell> { public: using CRTP<PWell>::CRTP; std::string name() const override { return "pwell"; } };
-class Metal1 final : public CRTP<Metal1> { public: using CRTP<Metal1>::CRTP; std::string name() const override { return "metal1"; } };
+class Metal1 final : public CRTP<Metal1> 
+{ 
+public: 
+    Metal1(unsigned int id, int zLevel = 0, std::unique_ptr<IShape> shape = nullptr, int thickness = 1) : 
+        CRTP<Metal1>(id, zLevel, std::move(shape)), thickness(thickness) { }
+    
+    std::string name() const override { return "metal1"; }
+    int thickness = 1; // in lambda
+};
+
 class Via final : public CRTP<Via> { public: using CRTP<Via>::CRTP; std::string name() const override { return "via"; } };
 class Contact final : public CRTP<Contact> { public: using CRTP<Contact>::CRTP; std::string name() const override { return "contact"; } };
 
@@ -176,7 +185,11 @@ public:
     void visit(const Poly& poly) override { serialize(poly); }
     void visit(const NWell& nwell) override { serialize(nwell); }
     void visit(const PWell& pwell) override { serialize(pwell); }
-    void visit(const Metal1& metal1) override { serialize(metal1); }
+    void visit(const Metal1& metal1) override 
+    { 
+        serialize(metal1); 
+        m_json.back()["thickness"] = metal1.thickness;
+    }
     void visit(const Via& via) override { serialize(via); }
     void visit(const Contact& contact) override { serialize(contact); }
 
@@ -243,7 +256,11 @@ private:
         if (name == "poly")    return std::make_shared<Poly>(id, zLevel, std::move(shape));
         if (name == "nwell")   return std::make_shared<NWell>(id, zLevel, std::move(shape));
         if (name == "pwell")   return std::make_shared<PWell>(id, zLevel, std::move(shape));
-        if (name == "metal1")  return std::make_shared<Metal1>(id, zLevel, std::move(shape));
+        if (name == "metal1")
+        {
+            int thickness = json.value("thickness", 1);
+            return std::make_shared<Metal1>(id, zLevel, std::move(shape), thickness);
+        }
         if (name == "via")     return std::make_shared<Via>(id, zLevel, std::move(shape));
         if (name == "contact") return std::make_shared<Contact>(id, zLevel, std::move(shape));
         

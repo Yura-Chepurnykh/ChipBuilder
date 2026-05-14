@@ -160,6 +160,32 @@ struct AABB
                  r.point.y + r.height };
     }
 
+    static AABB fromPolygon(const PolygonShape& p)
+    {
+        if (p.m_points.empty()) return {0,0,0,0};
+        int x1 = p.m_points[0].x;
+        int y1 = p.m_points[0].y;
+        int x2 = x1;
+        int y2 = y1;
+        for (const auto& pt : p.m_points) {
+            x1 = std::min(x1, pt.x);
+            y1 = std::min(y1, pt.y);
+            x2 = std::max(x2, pt.x);
+            y2 = std::max(y2, pt.y);
+        }
+        return {x1, y1, x2, y2};
+    }
+
+    static std::optional<AABB> fromShape(IShape* s)
+    {
+        if (!s) return std::nullopt;
+        if (auto r = dynamic_cast<const Rect*>(s))
+            return fromRect(*r);
+        if (auto p = dynamic_cast<const PolygonShape*>(s))
+            return fromPolygon(*p);
+        return std::nullopt;
+    }
+
     bool intersects(const AABB& o) const
     {
         return x1 < o.x2 && x2 > o.x1 &&

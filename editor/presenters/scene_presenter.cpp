@@ -173,6 +173,7 @@ void ScenePresenter::bindView(QGraphicsItem* view)
     else if (auto metalView = dynamic_cast<MetalView*>(view))
     {
         QObject::connect(metalView, &MetalView::geometryChanged, this, &ScenePresenter::handleMetalGeometryChanged);
+        QObject::connect(metalView, &MetalView::thicknessChanged, this, &ScenePresenter::handleMetalThicknessChanged);
         qDebug() << "Signals connected for MetalView id:" << metalView->id;
     }
 }
@@ -439,6 +440,27 @@ void ScenePresenter::handleSetLayerLevel(int id, int level)
         }
     }
     m_view.update();
+}
+
+void ScenePresenter::handleMetalThicknessChanged(int id, int thickness)
+{
+    auto modelId = m_context.m_viewToModel[id];
+    std::shared_ptr<AComponent> targetComponent = nullptr;
+    for (const auto& component : m_context.m_layout.m_components)
+    {
+        if (component->id == modelId) {
+            targetComponent = component;
+            break;
+        }
+    }
+
+    if (auto metal = std::dynamic_pointer_cast<Metal1>(targetComponent)) {
+        auto action = std::make_shared<ChangeMetalThicknessAction>(metal, thickness);
+        auto undoAction = std::make_shared<ChangeMetalThicknessAction>(metal, metal->thickness);
+        auto command = std::make_shared<ChangeMetalThicknessCommand>(action, undoAction);
+        m_manager.execute(command, m_context, m_view);
+        syncDRC();
+    }
 }
 
 void ScenePresenter::handleMoved(int id, const QPointF& prev, const QPointF& curr)

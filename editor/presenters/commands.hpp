@@ -193,6 +193,29 @@ private:
     std::shared_ptr<AComponent> m_componentModel;
 };
 
+class ChangeMetalThicknessAction final : public IAction
+{
+public:
+    ChangeMetalThicknessAction(std::shared_ptr<AComponent>, int thickness);
+    void execute(SceneView&, Context&) override;
+
+private:
+    int m_thickness;
+    std::shared_ptr<AComponent> m_componentModel;
+};
+
+class ChangeMetalThicknessCommand final : public ICommand
+{
+public:
+    ChangeMetalThicknessCommand(std::shared_ptr<IAction>, std::shared_ptr<IAction>);
+    void execute(SceneView&, Context&) override;
+    void undo(SceneView&, Context&) override;
+
+private:
+    std::shared_ptr<IAction> m_action;
+    std::shared_ptr<IAction> m_undoAction;
+};
+
 class MovePolygonEdgeCommand final : public ICommand
 {
 public:

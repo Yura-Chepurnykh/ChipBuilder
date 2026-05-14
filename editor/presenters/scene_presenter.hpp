@@ -105,6 +105,7 @@ public slots:
     void handleRaiseLayer(int);
     void handleLowerLayer(int);
     void handleSetLayerLevel(int, int);
+    void handleMetalThicknessChanged(int, int);
 
     void bindView(QGraphicsItem*);
 
