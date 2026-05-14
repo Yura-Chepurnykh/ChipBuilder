@@ -508,9 +508,12 @@ void ScenePresenter::handleMetalGeometryChanged(int id)
             {
                 poly->m_points.clear();
                 QPointF offset = metalView->pos();
+                constexpr int gap = 30;
                 for (const auto& p : metalView->getPath())
                 {
-                    poly->m_points.push_back(Point(-1, p->x() + offset.x(), p->y() + offset.y()));
+                    poly->m_points.push_back(Point(-1, 
+                        std::round((p->x() + offset.x()) / gap), 
+                        std::round((p->y() + offset.y()) / gap)));
                 }
             }
             break;
@@ -529,10 +532,11 @@ void ScenePresenter::handleGeometryChanged(int id, const QRectF& curr)
         {
             if (auto r = dynamic_cast<Rect*>(component->getShape()))
             {
-                r->point.x = normCurr.x();
-                r->point.y = normCurr.y();
-                r->width = normCurr.width();
-                r->height = normCurr.height();
+                constexpr int gap = 30;
+                r->point.x = std::round(normCurr.x() / gap);
+                r->point.y = std::round(normCurr.y() / gap);
+                r->width = std::round(normCurr.width() / gap);
+                r->height = std::round(normCurr.height() / gap);
             }
             break;
         }

@@ -3,22 +3,24 @@
 Point toPoint(const QPointF& p)
 {
     constexpr int gap = 30;
-    int x = static_cast<int>(std::round(p.x() / gap)) * gap;
-    int y = static_cast<int>(std::round(p.y() / gap)) * gap;
+    int x = static_cast<int>(std::round(p.x() / gap));
+    int y = static_cast<int>(std::round(p.y() / gap));
     return Point(IdGenerator::generate(), x, y);
 }
 
 QPointF toQPointF(const Point& p)
 {
-    qreal x = static_cast<qreal>(p.x);
-    qreal y = static_cast<qreal>(p.y);
+    constexpr int gap = 30;
+    qreal x = static_cast<qreal>(p.x * gap);
+    qreal y = static_cast<qreal>(p.y * gap);
     return QPointF(x, y);
 }
 
 QRectF toQRectF(const Rect& r)
 {
-    qreal w = static_cast<qreal>(r.width);
-    qreal h = static_cast<qreal>(r.height);
+    constexpr int gap = 30;
+    qreal w = static_cast<qreal>(r.width * gap);
+    qreal h = static_cast<qreal>(r.height * gap);
     return QRectF(0, 0, w, h);
 }
 

@@ -8,6 +8,7 @@ QMAKE_CXXFLAGS += -fsanitize=address -fno-omit-frame-pointer -g
 QMAKE_LFLAGS += -fsanitize=address
 
 INCLUDEPATH += ../../design_models/include
+INCLUDEPATH += ../../utils/include
 INCLUDEPATH += ../views/
 INCLUDEPATH += ../presenters/
 INCLUDEPATH += ../editor_models/

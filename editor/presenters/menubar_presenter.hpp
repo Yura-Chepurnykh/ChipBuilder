@@ -41,6 +41,7 @@ signals:
 private:
     void saveToFile(const std::string& currentPath);
     void loadFromFile(const std::string& currentPath);
+    void loadDRCRules(const std::string& path);
 
 private:
     std::string m_currentPath;

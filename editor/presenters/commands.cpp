@@ -361,10 +361,11 @@ void ResizedComponentAction::execute(SceneView& view, Context& context)
     {
         if (auto rect = dynamic_cast<Rect*>(shape))
         {
-            // Normalize coordinates for the model
-            rect->point = Point(-1, m_toRect.x(), m_toRect.y());
-            rect->width = std::abs(m_toRect.width());
-            rect->height = std::abs(m_toRect.height());
+            // Normalize coordinates for the model (1 grid square = 1 lambda)
+            constexpr int gap = 30;
+            rect->point = Point(-1, std::round(m_toRect.x() / gap), std::round(m_toRect.y() / gap));
+            rect->width = std::round(std::abs(m_toRect.width()) / gap);
+            rect->height = std::round(std::abs(m_toRect.height()) / gap);
         }
     }
 }

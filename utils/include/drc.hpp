@@ -193,7 +193,7 @@ struct AABB
 
 // Try to extract a Rect from an AComponent's shape.
 // Returns nullptr if shape is absent or is not a Rect.
-const Rect* getRect(AComponent& comp)
+inline const Rect* getRect(AComponent& comp)
 {
     IShape* s = comp.getShape();
     if (!s) return nullptr;
