@@ -28,6 +28,7 @@ public:
     virtual void move(int dx, int dy) = 0;
     virtual void move(const Point&) = 0;
     virtual void accept(struct IVisitor& visitor) = 0;
+    virtual double area() const = 0;
 
     unsigned int id;
     int zLevel = 0;
@@ -78,6 +79,14 @@ public:
     IShape* getShape() override { return nullptr; }
     void setShape(std::unique_ptr<IShape>) override { }
 
+    double area() const override
+    {
+        double total = 0.0;
+        for (const auto& c : m_components)
+            if (c) total += c->area();
+        return total;
+    }
+
 // private:
     // we use unique_ptr to avoid slicing
     std::vector<std::shared_ptr<AComponent>> m_components;
@@ -100,6 +109,11 @@ public:
 
     void setShape(std::unique_ptr<IShape> s) override { m_shape = std::move(s); }
     IShape* getShape() override { return m_shape.get(); }
+
+    double area() const override
+    {
+        return m_shape ? m_shape->area() : 0.0;
+    }
 
 // protected:
     Layer(unsigned int id, int zLevel = 0, std::unique_ptr<IShape> shape = nullptr) noexcept : 
@@ -125,11 +139,29 @@ class PWell final : public CRTP<PWell> { public: using CRTP<PWell>::CRTP; std::s
 class Metal1 final : public CRTP<Metal1> 
 { 
 public: 
-    Metal1(unsigned int id, int zLevel = 0, std::unique_ptr<IShape> shape = nullptr, int thickness = 1) : 
+    Metal1(unsigned int id, int zLevel = 0, std::unique_ptr<IShape> shape = nullptr, int thickness = 2) : 
         CRTP<Metal1>(id, zLevel, std::move(shape)), thickness(thickness) { }
     
     std::string name() const override { return "metal1"; }
-    int thickness = 1; // in lambda
+    
+    double area() const override
+    {
+        if (auto s = const_cast<Metal1*>(this)->getShape())
+        {
+            double a = s->area();
+            if (a > 0.001) return a;
+            
+            double len = s->length();
+            if (len < 0.001) {
+                // Handle degenerate case (1 point or all same points, or 0x0 rect)
+                return (double)thickness * thickness;
+            }
+            return (double)thickness * len;
+        }
+        return 0.0;
+    }
+
+    int thickness = 2; // in lambda
 };
 
 class Via final : public CRTP<Via> { public: using CRTP<Via>::CRTP; std::string name() const override { return "via"; } };
@@ -258,7 +290,7 @@ private:
         if (name == "pwell")   return std::make_shared<PWell>(id, zLevel, std::move(shape));
         if (name == "metal1")
         {
-            int thickness = json.value("thickness", 1);
+            int thickness = json.value("thickness", 2);
             return std::make_shared<Metal1>(id, zLevel, std::move(shape), thickness);
         }
         if (name == "via")     return std::make_shared<Via>(id, zLevel, std::move(shape));

@@ -24,6 +24,8 @@ struct IShape
     virtual void move(int dx, int dy) = 0;
     virtual void move(const Point&) = 0;
     virtual void accept(IVisitor&) = 0;
+    virtual double area() const = 0;
+    virtual double length() const = 0;
 };
 
 struct PolygonShape final : public IShape
@@ -45,6 +47,32 @@ struct PolygonShape final : public IShape
         int dx = point.x - m_points[0].x;
         int dy = point.y - m_points[0].y;
         move(dx, dy);
+    }
+
+    double area() const override
+    {
+        if (m_points.size() < 3) return 0.0;
+        double acc = 0.0;
+        for (std::size_t i = 0; i < m_points.size(); ++i)
+        {
+            const Point& cur = m_points[i];
+            const Point& next = m_points[(i + 1) % m_points.size()];
+            acc += (double)cur.x * next.y - (double)next.x * cur.y;
+        }
+        return std::abs(acc) / 2.0;
+    }
+
+    double length() const override
+    {
+        if (m_points.size() < 2) return 0.0;
+        double total = 0.0;
+        for (std::size_t i = 1; i < m_points.size(); ++i)
+        {
+            const Point& p1 = m_points[i - 1];
+            const Point& p2 = m_points[i];
+            total += std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+        }
+        return total;
     }
 
     void accept(IVisitor&) override;
@@ -87,6 +115,16 @@ struct Rect final : public IShape
     {
         point.x = p.x;
         point.y = p.y;
+    }
+
+    double area() const override
+    {
+        return (double)width * height;
+    }
+
+    double length() const override
+    {
+        return 0.0; // Length is not well-defined for a rectangle in this context
     }
 
     void accept(IVisitor&) override;

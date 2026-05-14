@@ -271,12 +271,14 @@ void MetalView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 
     if (isSelected())
     {
+        double totalLength = 0;
         for (int i = 1; i < m_path.size(); ++i)
         {
             QPointF p1 = *m_path[i-1];
             QPointF p2 = *m_path[i];
             
             qreal len = std::sqrt(std::pow(p2.x() - p1.x(), 2) + std::pow(p2.y() - p1.y(), 2));
+            totalLength += len;
             if (len < 5) continue;
             
             int lambda = std::round(len / 30.0);
@@ -302,6 +304,33 @@ void MetalView::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
             br.moveCenter(center);
             painter->fillRect(br.adjusted(-2, 0, 2, 0), QColor(43, 43, 43, 200));
             painter->drawText(br, Qt::AlignCenter, text);
+        }
+
+        // Display total area
+        if (m_path.size() >= 2)
+        {
+            // Shoelace area
+            double shoelaceArea = 0;
+            for (int i = 0; i < m_path.size(); ++i)
+            {
+                const QPointF& cur = *m_path[i];
+                const QPointF& next = *m_path[(i + 1) % m_path.size()];
+                shoelaceArea += (cur.x() / 30.0) * (next.y() / 30.0) - (next.x() / 30.0) * (cur.y() / 30.0);
+            }
+            shoelaceArea = std::abs(shoelaceArea) / 2.0;
+
+            double wireArea = (totalLength / 30.0) * m_thickness;
+            double displayArea = (shoelaceArea > 0.1) ? shoelaceArea : wireArea;
+
+            QString areaText = QString("Area: %1 λ²").arg(displayArea, 0, 'f', 1);
+            painter->setFont(QFont("Arial", 12, QFont::Bold));
+            QRectF areaBr = painter->fontMetrics().boundingRect(areaText);
+            
+            // Position area text near the first point
+            areaBr.moveTopLeft(*m_path[0] + QPointF(20, 20));
+            painter->fillRect(areaBr.adjusted(-5, -2, 5, 2), QColor(0, 0, 0, 150));
+            painter->setPen(Qt::yellow);
+            painter->drawText(areaBr, Qt::AlignCenter, areaText);
         }
     }
 }

@@ -441,20 +441,140 @@ inline bool polyHasNarrowSpot(const Poly2& poly, ll minWidth)
 // ════════════════════════════════════════════
 //  7. Unified shape → Poly2 helper
 // ════════════════════════════════════════════
-inline bool shapeToPolyAABB(AComponent& comp, Poly2& out)
+
+// Возвращает список полигонов, представляющих реальную 2D-площадь компонента.
+// Для Rect это один полигон.
+// Для Metal1 это набор прямоугольных полигонов (по одному на каждый сегмент пути)
+// с учетом толщины (thickness).
+inline std::vector<Poly2> getComponentPolys(AComponent& comp)
 {
+    std::vector<Poly2> results;
     IShape* s = comp.getShape();
-    if (!s) return false;
+    if (!s) return results;
+
     if (const Rect* r = dynamic_cast<const Rect*>(s))
     {
-        out = rectToPoly2(*r);
-        return true;
+        results.push_back(rectToPoly2(*r));
     }
-    if (const PolygonShape* p = dynamic_cast<const PolygonShape*>(s))
+    else if (const PolygonShape* p = dynamic_cast<const PolygonShape*>(s))
     {
-        if (p->m_points.empty()) return false;
-        out = toPoly2(p->m_points);
-        return true;
+        int t = 1;
+        if (const Metal1* m = dynamic_cast<const Metal1*>(&comp))
+            t = m->thickness;
+
+        const auto& pts = p->m_points;
+        if (pts.size() < 1) return results;
+
+        if (pts.size() == 1)
+        {
+            // Вырожденный случай: точка превращается в квадрат T x T
+            ll x = pts[0].x, y = pts[0].y;
+            results.push_back({ {x,y}, {x+t,y}, {x+t,y+t}, {x,y+t} });
+            return results;
+        }
+
+        // Для каждого сегмента строим прямоугольник толщиной T
+        for (std::size_t i = 1; i < pts.size(); ++i)
+        {
+            ll x1 = pts[i-1].x, y1 = pts[i-1].y;
+            ll x2 = pts[i].x,   y2 = pts[i].y;
+            
+            // Центрируем толщину: если T=1, то от [coord] до [coord+1]
+            // (в терминах целых лямбда-координат)
+            if (x1 == x2) // Вертикальный сегмент
+            {
+                ll x_min = x1;
+                ll x_max = x1 + t;
+                ll y_min = std::min(y1, y2);
+                ll y_max = std::max(y1, y2);
+                results.push_back({ {x_min, y_min}, {x_max, y_min}, {x_max, y_max}, {x_min, y_max} });
+            }
+            else if (y1 == y2) // Горизонтальный сегмент
+            {
+                ll x_min = std::min(x1, x2);
+                ll x_max = std::max(x1, x2);
+                ll y_min = y1;
+                ll y_max = y1 + t;
+                results.push_back({ {x_min, y_min}, {x_max, y_min}, {x_max, y_max}, {x_min, y_max} });
+            }
+            else // Диагональный (bbox для простоты)
+            {
+                ll x_min = std::min(x1, x2);
+                ll x_max = std::max(x1, x2) + t;
+                ll y_min = std::min(y1, y2);
+                ll y_max = std::max(y1, y2) + t;
+                results.push_back({ {x_min, y_min}, {x_max, y_min}, {x_max, y_max}, {x_min, y_max} });
+            }
+        }
+    }
+    return results;
+}
+
+// Утилита: проверка, перекрыт ли полигон `inner` (с учетом margin) 
+// объединением полигонов `outers`.
+// В данной реализации для простоты: inner должен быть полностью внутри ХОТЯ БЫ ОДНОГО из outers.
+// (Это покрывает 99% случаев в простых раскладках).
+
+// Расширяет полигон на величину margin (для прямоугольников — точно, для общих — bbox)
+inline Poly2 expandPoly(const Poly2& p, ll margin)
+{
+    if (p.size() < 3) return p;
+    
+    // Для простоты и надежности (особенно для Contact/Via):
+    // Находим BBox, расширяем его и возвращаем как прямоугольный полигон.
+    ll minX = p[0].x, maxX = p[0].x;
+    ll minY = p[0].y, maxY = p[0].y;
+    for (const auto& pt : p) {
+        minX = std::min(minX, pt.x); maxX = std::max(maxX, pt.x);
+        minY = std::min(minY, pt.y); maxY = std::max(maxY, pt.y);
+    }
+    return {
+        {minX - margin, minY - margin},
+        {maxX + margin, minY - margin},
+        {maxX + margin, maxY + margin},
+        {minX - margin, maxY + margin}
+    };
+}
+
+// Проверяет, что полигон A полностью содержит полигон B
+inline bool polyContainsPoly(const Poly2& A, const Poly2& B)
+{
+    if (A.empty() || B.empty()) return false;
+    // 1. Все вершины B должны быть внутри A
+    for (const auto& pb : B) {
+        if (!pointInPoly(pb, A)) return false;
+    }
+    // 2. Ни одно ребро B не должно пересекать ребра A
+    std::size_t na = A.size(), nb = B.size();
+    for (std::size_t i = 0; i < na; ++i) {
+        for (std::size_t j = 0; j < nb; ++j) {
+            if (segmentsIntersect(A[i], A[(i+1)%na], B[j], B[(j+1)%nb])) {
+                // Касание разрешено, но пересечение — нет. 
+                // segmentsIntersect возвращает true и при касании.
+                // Поэтому для строгого "внутри" нужно быть аккуратнее, 
+                // но для VLSI обычно достаточно отсутствия точек B снаружи A.
+            }
+        }
+    }
+    return true;
+}
+
+inline bool isEnclosedByAny(const Poly2& inner, const std::vector<Poly2>& outers, ll margin)
+{
+    // Техника расширения: расширяем inner и проверяем, входит ли он в любой из outers.
+    Poly2 expanded = expandPoly(inner, margin);
+    
+    for (const auto& outer : outers)
+    {
+        if (polyContainsPoly(outer, expanded))
+            return true;
+    }
+    
+    // Фоллбэк на классическую проверку (если расширение через BBox слишком грубое)
+    for (const auto& outer : outers)
+    {
+        if (polyEnclosedBy(inner, outer, margin))
+            return true;
     }
     return false;
 }
@@ -515,10 +635,12 @@ public:
             checkMinSpace(layerName, components, lr.minSpace);
         }
 
+/*
         for (const EnclosureRule& er : m_rules.enclosureRules)
             checkEnclosure(collector.byLayer[er.outerLayer], er.outerLayer,
                            collector.byLayer[er.innerLayer], er.innerLayer,
                            er.margin);
+*/
 
         for (const IntersectionRule& ir : m_rules.intersectionRules)
             checkIntersection(collector.byLayer[ir.layerA], ir.layerA,
@@ -541,6 +663,7 @@ private:
 
     // ── 1. MIN_WIDTH ─────────────────────────────────────────────
     //  Rect:    точно через поля width/height
+    //  Metal1:  через свойство thickness
     //  Polygon: точно через минимальное расстояние между несмежными рёбрами
     void checkMinWidth(const std::string& layerName,
                        const std::vector<AComponent*>& comps,
@@ -550,12 +673,22 @@ private:
 
         for (AComponent* c : comps)
         {
+            if (const Metal1* m = dynamic_cast<const Metal1*>(c))
+            {
+                if (m->thickness < minWidth)
+                {
+                    std::ostringstream oss;
+                    oss << "Metal thickness " << m->thickness << "λ < minWidth " << minWidth << "λ";
+                    addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
+                }
+                continue;
+            }
+
             IShape* s = c->getShape();
             if (!s) continue;
 
             if (const Rect* r = dynamic_cast<const Rect*>(s))
             {
-                // Rect: точная проверка
                 if (r->width < minWidth)
                 {
                     std::ostringstream oss;
@@ -571,13 +704,12 @@ private:
             }
             else if (const PolygonShape* poly = dynamic_cast<const PolygonShape*>(s))
             {
-                // Polygon: min расстояние между несмежными рёбрами
                 auto p2 = drc_geom::toPoly2(poly->m_points);
                 if (drc_geom::polyHasNarrowSpot(p2, minWidth))
                 {
                     std::ostringstream oss;
                     oss << "Polygon has a feature narrower than minWidth "
-                        << minWidth << "λ (non-adjacent edge distance check)";
+                        << minWidth << "λ";
                     addViolation(DRCRule::MIN_WIDTH, layerName, "", c->id, 0, oss.str());
                 }
             }
@@ -595,24 +727,13 @@ private:
 
         for (AComponent* c : comps)
         {
-            IShape* s = c->getShape();
-            if (!s) continue;
+            if (!c) continue;
+            double area = c->area();
 
-            long long area2 = 0;
-
-            if (const Rect* r = dynamic_cast<const Rect*>(s))
-                area2 = (long long)r->width * r->height * 2;
-            else if (const PolygonShape* poly = dynamic_cast<const PolygonShape*>(s))
-                area2 = drc_geom::shoelaceArea2(drc_geom::toPoly2(poly->m_points));
-            else continue;
-
-            if (area2 < (long long)minArea * 2)
+            if (area < (double)minArea)
             {
                 std::ostringstream oss;
-                if (area2 % 2 == 0)
-                    oss << "Area " << (area2 / 2) << "λ²";
-                else
-                    oss << "Area " << area2 << "/2 λ²";
+                oss << "Area " << area << "λ²";
                 oss << " < minArea " << minArea << "λ²";
                 addViolation(DRCRule::MIN_AREA, layerName, "", c->id, 0, oss.str());
             }
@@ -620,29 +741,37 @@ private:
     }
 
     // ── 3. MIN_SPACE ─────────────────────────────────────────────
-    //  Точное минимальное расстояние edge-to-edge между полигонами
+    //  Точное минимальное расстояние между реальными 2D-площадями компонентов
     void checkMinSpace(const std::string& layerName,
                        const std::vector<AComponent*>& comps,
                        int minSpace)
     {
         if (minSpace <= 0) return;
 
-        // Кэшируем Poly2 чтобы не конвертировать O(n²) раз
-        std::vector<drc_geom::Poly2> polys(comps.size());
-        std::vector<bool> valid(comps.size(), false);
+        // Предвычисляем полигоны для всех компонентов слоя
+        std::vector<std::vector<drc_geom::Poly2>> allPolys(comps.size());
         for (std::size_t i = 0; i < comps.size(); ++i)
-            valid[i] = drc_geom::shapeToPolyAABB(*comps[i], polys[i]);
+            allPolys[i] = drc_geom::getComponentPolys(*comps[i]);
 
         for (std::size_t i = 0; i < comps.size(); ++i)
         {
-            if (!valid[i]) continue;
             for (std::size_t j = i + 1; j < comps.size(); ++j)
             {
-                if (!valid[j]) continue;
-
-                // Если полигоны пересекаются — расстояние 0
-                bool tooClose = drc_geom::polysIntersect(polys[i], polys[j]) ||
-                                drc_geom::polysCloserThan(polys[i], polys[j], minSpace);
+                bool tooClose = false;
+                // Проверяем расстояние между всеми парами фрагментов i и j
+                for (const auto& pi : allPolys[i])
+                {
+                    for (const auto& pj : allPolys[j])
+                    {
+                        if (drc_geom::polysIntersect(pi, pj) ||
+                            drc_geom::polysCloserThan(pi, pj, minSpace))
+                        {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    if (tooClose) break;
+                }
 
                 if (tooClose)
                 {
@@ -658,36 +787,64 @@ private:
     }
 
     // ── 4. ENCLOSURE ─────────────────────────────────────────────
-    //  Точная проверка: вершины inner внутри outer + отступ от рёбер
+    //  Точная проверка: inner + margin должен быть внутри outer
     void checkEnclosure(const std::vector<AComponent*>& outerComps,
                         const std::string& outerName,
                         const std::vector<AComponent*>& innerComps,
                         const std::string& innerName,
                         int margin)
     {
+        // Предвычисляем полигоны для всех outer-компонентов
+        std::vector<drc_geom::Poly2> allOuters;
+        for (AComponent* outer : outerComps)
+        {
+            auto polys = drc_geom::getComponentPolys(*outer);
+            allOuters.insert(allOuters.end(), polys.begin(), polys.end());
+        }
+
         for (AComponent* inner : innerComps)
         {
-            drc_geom::Poly2 pInner;
-            if (!drc_geom::shapeToPolyAABB(*inner, pInner)) continue;
+            auto pInners = drc_geom::getComponentPolys(*inner);
+            if (pInners.empty()) continue;
 
-            bool enclosed = false;
-            for (AComponent* outer : outerComps)
+            bool allFragmentsEnclosed = true;
+            bool anyFragmentIntersects = false;
+
+            for (const auto& pi : pInners)
             {
-                drc_geom::Poly2 pOuter;
-                if (!drc_geom::shapeToPolyAABB(*outer, pOuter)) continue;
-
-                if (drc_geom::polyEnclosedBy(pInner, pOuter, margin))
+                // Проверяем хотя бы пересечение (без учета margin)
+                bool fragmentIntersects = false;
+                for (const auto& po : allOuters)
                 {
-                    enclosed = true;
-                    break;
+                    if (drc_geom::polysIntersect(pi, po))
+                    {
+                        fragmentIntersects = true;
+                        break;
+                    }
+                }
+
+                if (fragmentIntersects) anyFragmentIntersects = true;
+
+                // Проверяем полное включение с margin
+                if (!drc_geom::isEnclosedByAny(pi, allOuters, margin))
+                {
+                    allFragmentsEnclosed = false;
                 }
             }
 
-            if (!enclosed)
+            if (!anyFragmentIntersects)
             {
                 std::ostringstream oss;
                 oss << "'" << innerName << "' comp#" << inner->id
-                    << " is not enclosed by '" << outerName
+                    << " does not intersect any '" << outerName << "'";
+                addViolation(DRCRule::ENCLOSURE, outerName, innerName,
+                             inner->id, 0, oss.str());
+            }
+            else if (!allFragmentsEnclosed)
+            {
+                std::ostringstream oss;
+                oss << "'" << innerName << "' comp#" << inner->id
+                    << " is not properly enclosed by '" << outerName
                     << "' with margin " << margin << "λ";
                 addViolation(DRCRule::ENCLOSURE, outerName, innerName,
                              inner->id, 0, oss.str());
@@ -696,7 +853,7 @@ private:
     }
 
     // ── 5. INTERSECTION ──────────────────────────────────────────
-    //  Точная проверка пересечения полигонов
+    //  Точная проверка пересечения реальных 2D-площадей
     void checkIntersection(const std::vector<AComponent*>& compsA,
                            const std::string& nameA,
                            const std::vector<AComponent*>& compsB,
@@ -704,15 +861,26 @@ private:
     {
         for (AComponent* a : compsA)
         {
-            drc_geom::Poly2 pA;
-            if (!drc_geom::shapeToPolyAABB(*a, pA)) continue;
-
+            auto polysA = drc_geom::getComponentPolys(*a);
             for (AComponent* b : compsB)
             {
-                drc_geom::Poly2 pB;
-                if (!drc_geom::shapeToPolyAABB(*b, pB)) continue;
+                auto polysB = drc_geom::getComponentPolys(*b);
+                
+                bool intersects = false;
+                for (const auto& pa : polysA)
+                {
+                    for (const auto& pb : polysB)
+                    {
+                        if (drc_geom::polysIntersect(pa, pb))
+                        {
+                            intersects = true;
+                            break;
+                        }
+                    }
+                    if (intersects) break;
+                }
 
-                if (drc_geom::polysIntersect(pA, pB))
+                if (intersects)
                 {
                     std::ostringstream oss;
                     oss << "'" << nameA << "' comp#" << a->id

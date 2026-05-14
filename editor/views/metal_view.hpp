@@ -21,7 +21,7 @@ class MetalView : public QObject, public QGraphicsItem
 public:
     using QSharedPolygon = QVector<std::shared_ptr<QPointF>>;
 
-    MetalView(QSharedPolygon, Style, int thickness = 1);
+    MetalView(QSharedPolygon, Style, int thickness = 2);
     ~MetalView() = default;
 
     int id;
@@ -52,7 +52,7 @@ protected:
 private:
     Style m_style;
     QVector<std::shared_ptr<QPointF>> m_path;
-    int m_thickness = 1;
+    int m_thickness = 2;
     bool m_drcViolated = false;
 
     int m_draggedSegmentIdx = -1; // -1 if not dragging a segment

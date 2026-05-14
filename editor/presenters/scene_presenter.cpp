@@ -84,7 +84,7 @@ void ScenePresenter::handleMKeyPress()
 {
     for (auto* view : m_view.views()) view->setDragMode(QGraphicsView::NoDrag);
     m_selectedComponent = std::make_shared<Metal1>(IdGenerator::generate(), 0, nullptr);
-    m_builder = std::make_unique<RectBuilder>();
+    m_builder = std::make_unique<PolygonBuilder>();
 }
 
 void ScenePresenter::setState(std::unique_ptr<IStrategy> state) { m_strategy = std::move(state); }
