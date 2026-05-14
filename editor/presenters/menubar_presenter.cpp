@@ -53,6 +53,84 @@ MenuBarPresenter::MenuBarPresenter(Context& context, MenuBar& menuBar, SceneView
     connect(m_menuBarView.m_editMenu->m_group, &QAction::triggered, [this]() {
         emit groupTriggered();
     });
+
+    connect(m_menuBarView.m_fileMenu->m_loadDRC, &QAction::triggered, [this]() {
+        handleLoadDRC();
+    });
+}
+
+void MenuBarPresenter::handleLoadDRC()
+{
+    QString name = QFileDialog::getOpenFileName(
+        nullptr,
+        "Load DRC Rules",
+        "",
+        "DRC Rules (*.json);;All Files (*)"
+    );
+
+    if (name.isEmpty())
+        return;
+
+    loadDRCRules(name.toStdString());
+
+    // Trigger DRC check after loading rules
+    m_context.m_violations = runDRC(m_context.m_layout, m_context.m_rules);
+    
+    qDebug() << "DRC Check completed after loading rules. Violations found:" << m_context.m_violations.size();
+    for (const auto& v : m_context.m_violations) {
+        qDebug() << QString::fromStdString(v.toString());
+    }
+}
+
+void MenuBarPresenter::loadDRCRules(const std::string& path)
+{
+    std::ifstream file(path);
+    if (!file) {
+        qWarning() << "Cannot open DRC rules file:" << QString::fromStdString(path);
+        return;
+    }
+
+    try {
+        JSON j;
+        file >> j;
+
+        DRCRuleSet newRules;
+
+        if (j.contains("layers") && j["layers"].is_object()) {
+            for (auto it = j["layers"].begin(); it != j["layers"].end(); ++it) {
+                std::string layerName = it.key();
+                auto& layerJson = it.value();
+                LayerRules lr;
+                lr.minWidth = layerJson.value("minWidth", 0);
+                lr.minSpace = layerJson.value("minSpace", 0);
+                lr.minArea = layerJson.value("minArea", 0);
+                newRules.layerRules[layerName] = lr;
+            }
+        }
+
+        if (j.contains("enclosure") && j["enclosure"].is_array()) {
+            for (const auto& enc : j["enclosure"]) {
+                newRules.enclosureRules.push_back({
+                    enc.value("outer", ""),
+                    enc.value("inner", ""),
+                    enc.value("margin", 0)
+                });
+            }
+        }
+
+        if (j.contains("intersection") && j["intersection"].is_array()) {
+            for (const auto& inter : j["intersection"]) {
+                newRules.intersectionRules.push_back({
+                    inter.value("layerA", ""),
+                    inter.value("layerB", "")
+                });
+            }
+        }
+
+        m_context.m_rules = newRules;
+    } catch (const std::exception& e) {
+        qWarning() << "Error parsing DRC rules JSON:" << e.what();
+    }
 }
 
 void MenuBarPresenter::handleNew()

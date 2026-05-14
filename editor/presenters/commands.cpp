@@ -1,5 +1,6 @@
 #include "commands.hpp"
 #include "factories.hpp"
+#include <QDebug>
 
 void CommandManager::execute(std::shared_ptr<ICommand> command, Context& context, SceneView& scene)
 {
@@ -8,6 +9,13 @@ void CommandManager::execute(std::shared_ptr<ICommand> command, Context& context
 
     if (!m_redoHistory.empty())
         m_redoHistory.pop();
+
+    // Trigger DRC check after command execution
+    context.m_violations = runDRC(context.m_layout, context.m_rules);
+    qDebug() << "DRC Check completed after execute. Violations found:" << context.m_violations.size();
+    for (const auto& v : context.m_violations) {
+        qDebug() << QString::fromStdString(v.toString());
+    }
 }
 
 void CommandManager::undo(SceneView& scene, Context& context)
@@ -18,6 +26,10 @@ void CommandManager::undo(SceneView& scene, Context& context)
         command->undo(scene, context);
         m_redoHistory.push(command);
         m_undoHistory.pop();
+
+        // Trigger DRC check after undo
+        context.m_violations = runDRC(context.m_layout, context.m_rules);
+        qDebug() << "DRC Check completed after undo. Violations found:" << context.m_violations.size();
     }
 }
 
@@ -29,6 +41,10 @@ void CommandManager::redo(SceneView& scene, Context& context)
         command->execute(scene, context);
         m_undoHistory.push(command);
         m_redoHistory.pop();
+
+        // Trigger DRC check after redo
+        context.m_violations = runDRC(context.m_layout, context.m_rules);
+        qDebug() << "DRC Check completed after redo. Violations found:" << context.m_violations.size();
     }
 }
 

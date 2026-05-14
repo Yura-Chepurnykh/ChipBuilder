@@ -23,6 +23,7 @@ public slots:
     void handleOpen();
     void handleSave();
     void handleSaveAs();
+    void handleLoadDRC();
 
 signals:
     void rectSelectionTriggered();

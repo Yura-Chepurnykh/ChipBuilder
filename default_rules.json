@@ -1,0 +1,18 @@
+{
+  "layers": {
+    "active": { "minWidth": 2, "minSpace": 3, "minArea": 4 },
+    "poly": { "minWidth": 1, "minSpace": 2, "minArea": 2 },
+    "nwell": { "minWidth": 4, "minSpace": 6, "minArea": 16 },
+    "pwell": { "minWidth": 4, "minSpace": 6, "minArea": 16 },
+    "metal1": { "minWidth": 2, "minSpace": 3, "minArea": 4 },
+    "via": { "minWidth": 1, "minSpace": 2, "minArea": 1 },
+    "contact": { "minWidth": 1, "minSpace": 2, "minArea": 1 }
+  },
+  "enclosure": [
+    { "outer": "active", "inner": "contact", "margin": 1 },
+    { "outer": "metal1", "inner": "contact", "margin": 1 }
+  ],
+  "intersection": [
+    { "layerA": "nwell", "layerB": "pwell" }
+  ]
+}
